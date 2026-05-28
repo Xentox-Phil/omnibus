@@ -1,0 +1,30 @@
+{
+  "projectName": "frontend",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "npm",
+  "includeExamples": false,
+  "tailwind": true,
+  "addOnOptions": {
+    "drizzle": {
+      "database": "postgresql"
+    }
+  },
+  "envVarValues": {},
+  "git": false,
+  "install": true,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "eslint",
+    "cloudflare",
+    "drizzle",
+    "form",
+    "shadcn",
+    "t3env",
+    "tRPC",
+    "better-auth",
+    "tanstack-query"
+  ]
+}

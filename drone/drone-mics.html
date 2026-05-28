@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Drone Mic Array — Tetrahedral Placement</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #0b0d10; color: #d8dde3; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  canvas { display: block; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+  #ui, #controls, #legend { z-index: 10; }
+  #boot { position: fixed; bottom: 12px; right: 12px; z-index: 50; background: #1f2937; color: #9ca3af; padding: 6px 10px; border-radius: 5px; font: 11px monospace; }
+  #ui {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    background: rgba(20,24,30,0.85); border: 1px solid #2a313a; border-radius: 8px;
+    padding: 14px 16px; max-width: 340px; font-size: 13px; line-height: 1.5;
+    backdrop-filter: blur(8px);
+  }
+  #ui h1 { font-size: 14px; margin: 0 0 8px; color: #7dd3fc; }
+  #ui h2 { font-size: 12px; margin: 12px 0 4px; color: #a3e635; text-transform: uppercase; letter-spacing: 0.5px; }
+  #ui p { margin: 4px 0; }
+  #ui .key { color: #fbbf24; font-weight: 600; }
+  #ui code { background: #161b22; padding: 1px 5px; border-radius: 3px; color: #f0abfc; font-size: 12px; }
+  #legend { position: absolute; bottom: 12px; left: 12px; z-index: 10;
+    background: rgba(20,24,30,0.85); border: 1px solid #2a313a; border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; backdrop-filter: blur(8px); }
+  #legend .row { display: flex; align-items: center; margin: 4px 0; }
+  #legend .swatch { width: 14px; height: 14px; border-radius: 50%; margin-right: 8px; border: 1px solid rgba(255,255,255,0.2); }
+  #controls { position: absolute; top: 12px; right: 12px; z-index: 10;
+    background: rgba(20,24,30,0.85); border: 1px solid #2a313a; border-radius: 8px;
+    padding: 12px; font-size: 12px; backdrop-filter: blur(8px); }
+  #controls button { background: #1f2937; color: #d8dde3; border: 1px solid #374151;
+    padding: 6px 10px; border-radius: 5px; cursor: pointer; margin: 2px; font-size: 12px; }
+  #controls button:hover { background: #374151; }
+  #controls button.active { background: #1e40af; border-color: #3b82f6; }
+  #controls label { display: block; margin: 8px 0 4px; color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+<div id="boot">booting…</div>
+<div id="ui">
+  <h1>Drone Acoustic Array — 4-Mic Tetrahedral</h1>
+  <p>Minimum mics for unambiguous 3D direction-of-arrival: <span class="key">4, non-coplanar</span>.</p>
+  <h2>Placement</h2>
+  <p><span class="key">Front-Left</span> & <span class="key">Front-Right</span>: <em>below</em> arm (−Z)</p>
+  <p><span class="key">Back-Left</span> & <span class="key">Back-Right</span>: <em>above</em> arm (+Z)</p>
+  <p>Four mics form a tetrahedron — no two on the same plane → resolves azimuth + elevation without front/back or up/down mirror ambiguity.</p>
+  <h2>Why this geometry</h2>
+  <p>• Baseline ≈ <code>2 × arm</code> (~40–60 cm)<br>
+     • Good for 0.5–8 kHz drone harmonics<br>
+     • Non-coplanar removes the cone-of-confusion<br>
+     • Boom-mount below/above prop plane → ~6–10 dB lower own-noise vs in-plane</p>
+  <h2>SNR tip</h2>
+  <p>Mount on rigid booms ~5–10 cm offset from arm, foam windscreens, reference mic at each prop hub for ESC-telemetry-driven noise cancellation.</p>
+</div>
+
+<div id="controls">
+  <label>View</label>
+  <button id="btn-iso" class="active">Isometric</button>
+  <button id="btn-top">Top</button>
+  <button id="btn-front">Front</button>
+  <label>Show</label>
+  <button id="btn-baselines" class="active">Baselines</button>
+  <button id="btn-tetra" class="active">Tetrahedron</button>
+  <button id="btn-doa" class="active">DOA cone</button>
+  <button id="btn-target" class="active">Target drone</button>
+  <label>Config</label>
+  <button id="btn-config-tetra" class="active">Tetrahedral (4)</button>
+  <button id="btn-config-planar">Coplanar (4)</button>
+  <button id="btn-config-3">Triangle (3)</button>
+</div>
+
+<div id="legend">
+  <div class="row"><div class="swatch" style="background:#22d3ee"></div>Mic — front (low)</div>
+  <div class="row"><div class="swatch" style="background:#a3e635"></div>Mic — back (high)</div>
+  <div class="row"><div class="swatch" style="background:#f59e0b"></div>Propeller</div>
+  <div class="row"><div class="swatch" style="background:#ef4444"></div>Target drone</div>
+  <div class="row"><div class="swatch" style="background:#8b5cf6"></div>Estimated DOA</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+function showErr(msg) {
+  document.body.insertAdjacentHTML('beforeend',
+    '<div style="position:fixed;bottom:12px;right:12px;background:#7f1d1d;color:#fff;padding:10px;border-radius:6px;font:12px monospace;max-width:480px;z-index:100;white-space:pre-wrap">' + msg + '</div>');
+}
+window.addEventListener('error', e => showErr('JS error: ' + (e.message || e)));
+window.addEventListener('unhandledrejection', e => showErr('Promise rejection: ' + (e.reason?.message || e.reason)));
+
+const bootEl = document.getElementById('boot');
+function boot(msg) { if (bootEl) bootEl.textContent = msg; }
+boot('module loaded, THREE=' + (THREE?.REVISION || '?'));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0d10);
+scene.fog = new THREE.Fog(0x0b0d10, 8, 25);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(2.2, 1.6, 2.2);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+boot('renderer attached');
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 0, 0);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const key = new THREE.DirectionalLight(0xffffff, 1.0);
+key.position.set(4, 6, 4); scene.add(key);
+const rim = new THREE.DirectionalLight(0x7dd3fc, 0.5);
+rim.position.set(-3, 2, -3); scene.add(rim);
+
+// Ground grid
+const grid = new THREE.GridHelper(10, 20, 0x1f2937, 0x1f2937);
+grid.position.y = -0.8;
+scene.add(grid);
+
+// Axis labels (X red, Y green, Z blue)
+const axis = new THREE.AxesHelper(1.2);
+axis.position.y = -0.79;
+scene.add(axis);
+
+// ---------- Drone ----------
+const drone = new THREE.Group();
+scene.add(drone);
+
+// Central body
+const bodyGeo = new THREE.BoxGeometry(0.22, 0.08, 0.22);
+const bodyMat = new THREE.MeshStandardMaterial({ color: 0x374151, metalness: 0.6, roughness: 0.4 });
+const body = new THREE.Mesh(bodyGeo, bodyMat);
+drone.add(body);
+
+// 4 arms (X-config quadcopter)
+// arm tips at (±armR, 0, ±armR) in XZ plane (Y up)
+const armR = 0.55;  // arm length from center along diagonal
+const armPositions = [
+  { name: 'FL', x:  armR, z: -armR, isFront: true  },  // front-left  (-Z is forward)
+  { name: 'FR', x: -armR, z: -armR, isFront: true  },  // front-right
+  { name: 'BL', x:  armR, z:  armR, isFront: false },  // back-left
+  { name: 'BR', x: -armR, z:  armR, isFront: false },  // back-right
+];
+
+const armMat = new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.5, roughness: 0.5 });
+for (const a of armPositions) {
+  const len = Math.hypot(a.x, a.z);
+  const armGeo = new THREE.CylinderGeometry(0.018, 0.018, len, 12);
+  const arm = new THREE.Mesh(armGeo, armMat);
+  arm.position.set(a.x / 2, 0, a.z / 2);
+  arm.lookAt(a.x, 0, a.z);
+  arm.rotateX(Math.PI / 2);
+  drone.add(arm);
+
+  // motor
+  const motorGeo = new THREE.CylinderGeometry(0.045, 0.05, 0.045, 16);
+  const motorMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.7, roughness: 0.4 });
+  const motor = new THREE.Mesh(motorGeo, motorMat);
+  motor.position.set(a.x, 0.035, a.z);
+  drone.add(motor);
+
+  // propeller (translucent disk)
+  const propGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.005, 32);
+  const propMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b, transparent: true, opacity: 0.35, side: THREE.DoubleSide, metalness: 0.2, roughness: 0.6
+  });
+  const prop = new THREE.Mesh(propGeo, propMat);
+  prop.position.set(a.x, 0.075, a.z);
+  prop.userData.spinning = true;
+  drone.add(prop);
+
+  // prop edge ring
+  const ringGeo = new THREE.TorusGeometry(0.18, 0.003, 8, 48);
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xf59e0b, emissiveIntensity: 0.4 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(a.x, 0.075, a.z);
+  ring.rotation.x = Math.PI / 2;
+  drone.add(ring);
+}
+
+// ---------- Mic configurations ----------
+// We will create configs and switch between them.
+const micGroup = new THREE.Group();
+drone.add(micGroup);
+const baselineGroup = new THREE.Group();
+drone.add(baselineGroup);
+const tetraGroup = new THREE.Group();
+drone.add(tetraGroup);
+
+const COL_FRONT = 0x22d3ee;
+const COL_BACK  = 0xa3e635;
+const COL_BASE  = 0x4b5563;
+const COL_TETRA = 0x7dd3fc;
+
+function makeMic(x, y, z, color) {
+  const g = new THREE.SphereGeometry(0.05, 24, 24);
+  const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.3 });
+  const mesh = new THREE.Mesh(g, m);
+  mesh.position.set(x, y, z);
+  // small boom stub
+  const stubGeo = new THREE.CylinderGeometry(0.008, 0.008, Math.abs(y) + 0.02, 8);
+  const stubMat = new THREE.MeshStandardMaterial({ color: 0x6b7280 });
+  const stub = new THREE.Mesh(stubGeo, stubMat);
+  stub.position.set(x, y / 2, z);
+  return { mic: mesh, stub };
+}
+
+function buildConfig(name) {
+  // clear
+  while (micGroup.children.length) micGroup.remove(micGroup.children[0]);
+  while (baselineGroup.children.length) baselineGroup.remove(baselineGroup.children[0]);
+  while (tetraGroup.children.length) tetraGroup.remove(tetraGroup.children[0]);
+
+  let mics = [];
+  const yLow = -0.18;   // below arm
+  const yHigh = 0.22;   // above arm
+
+  if (name === 'tetra') {
+    // 4 mics, non-coplanar tetrahedron — front low, back high
+    mics = [
+      { x:  armR, y: yLow,  z: -armR, color: COL_FRONT, label: 'FL-low'  },
+      { x: -armR, y: yLow,  z: -armR, color: COL_FRONT, label: 'FR-low'  },
+      { x:  armR, y: yHigh, z:  armR, color: COL_BACK,  label: 'BL-high' },
+      { x: -armR, y: yHigh, z:  armR, color: COL_BACK,  label: 'BR-high' },
+    ];
+  } else if (name === 'planar') {
+    // 4 mics all in same plane above arms — gives up/down ambiguity
+    mics = [
+      { x:  armR, y: yHigh, z: -armR, color: COL_FRONT, label: 'FL' },
+      { x: -armR, y: yHigh, z: -armR, color: COL_FRONT, label: 'FR' },
+      { x:  armR, y: yHigh, z:  armR, color: COL_BACK,  label: 'BL' },
+      { x: -armR, y: yHigh, z:  armR, color: COL_BACK,  label: 'BR' },
+    ];
+  } else if (name === 'tri') {
+    // 3 mics, can't resolve full 3D
+    mics = [
+      { x:  armR, y: yLow,  z: -armR, color: COL_FRONT, label: 'FL' },
+      { x: -armR, y: yLow,  z: -armR, color: COL_FRONT, label: 'FR' },
+      { x:  0,    y: yHigh, z:  armR, color: COL_BACK,  label: 'B'  },
+    ];
+  }
+
+  for (const p of mics) {
+    const { mic, stub } = makeMic(p.x, p.y, p.z, p.color);
+    micGroup.add(mic);
+    micGroup.add(stub);
+  }
+
+  // Baselines (all pairs)
+  const baseMat = new THREE.LineBasicMaterial({ color: COL_BASE, transparent: true, opacity: 0.4 });
+  for (let i = 0; i < mics.length; i++) {
+    for (let j = i + 1; j < mics.length; j++) {
+      const pts = [
+        new THREE.Vector3(mics[i].x, mics[i].y, mics[i].z),
+        new THREE.Vector3(mics[j].x, mics[j].y, mics[j].z),
+      ];
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      baselineGroup.add(new THREE.Line(geo, baseMat));
+    }
+  }
+
+  // Tetrahedron faces (only for tetra config)
+  if (name === 'tetra') {
+    const verts = new Float32Array([
+      mics[0].x, mics[0].y, mics[0].z,
+      mics[1].x, mics[1].y, mics[1].z,
+      mics[2].x, mics[2].y, mics[2].z,
+      mics[3].x, mics[3].y, mics[3].z,
+    ]);
+    const idx = [
+      0, 1, 2,
+      0, 2, 3,
+      0, 3, 1,
+      1, 3, 2,
+    ];
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshBasicMaterial({
+      color: COL_TETRA, transparent: true, opacity: 0.10, side: THREE.DoubleSide
+    });
+    tetraGroup.add(new THREE.Mesh(geo, mat));
+
+    // Edges
+    const edgeMat = new THREE.LineBasicMaterial({ color: COL_TETRA, transparent: true, opacity: 0.5 });
+    const edges = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+    for (const [a,b] of edges) {
+      const pts = [
+        new THREE.Vector3(mics[a].x, mics[a].y, mics[a].z),
+        new THREE.Vector3(mics[b].x, mics[b].y, mics[b].z),
+      ];
+      const eg = new THREE.BufferGeometry().setFromPoints(pts);
+      tetraGroup.add(new THREE.Line(eg, edgeMat));
+    }
+  }
+
+  return mics;
+}
+
+let currentMics = buildConfig('tetra');
+
+// ---------- Target drone (sound source) ----------
+const target = new THREE.Group();
+const tBody = new THREE.Mesh(
+  new THREE.BoxGeometry(0.18, 0.06, 0.18),
+  new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.4 })
+);
+target.add(tBody);
+for (const dx of [-0.18, 0.18]) for (const dz of [-0.18, 0.18]) {
+  const p = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.07, 0.07, 0.005, 24),
+    new THREE.MeshStandardMaterial({ color: 0xfca5a5, transparent: true, opacity: 0.5 })
+  );
+  p.position.set(dx, 0.03, dz);
+  target.add(p);
+}
+scene.add(target);
+
+// ---------- Sound wave / DOA cone ----------
+const waveGroup = new THREE.Group();
+scene.add(waveGroup);
+const waves = [];
+for (let i = 0; i < 4; i++) {
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.1, 0.105, 48),
+    new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+  );
+  waves.push(ring);
+  waveGroup.add(ring);
+}
+
+const doaGroup = new THREE.Group();
+scene.add(doaGroup);
+const doaLineMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.9 });
+const doaLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1,1,1)]);
+const doaLine = new THREE.Line(doaLineGeo, doaLineMat);
+doaGroup.add(doaLine);
+// DOA arrow head
+const doaHead = new THREE.Mesh(
+  new THREE.ConeGeometry(0.06, 0.18, 16),
+  new THREE.MeshStandardMaterial({ color: 0x8b5cf6, emissive: 0x8b5cf6, emissiveIntensity: 0.6 })
+);
+doaGroup.add(doaHead);
+
+// ---------- Visibility toggles ----------
+const flags = { baselines: true, tetra: true, doa: true, target: true };
+function applyFlags() {
+  baselineGroup.visible = flags.baselines;
+  tetraGroup.visible = flags.tetra;
+  doaGroup.visible = flags.doa;
+  target.visible = flags.target;
+  waveGroup.visible = flags.target;
+}
+
+// ---------- UI buttons ----------
+function setActive(id, on) {
+  const el = document.getElementById(id);
+  if (on) el.classList.add('active'); else el.classList.remove('active');
+}
+function toggle(id, key) {
+  document.getElementById(id).addEventListener('click', () => {
+    flags[key] = !flags[key];
+    setActive(id, flags[key]);
+    applyFlags();
+  });
+}
+toggle('btn-baselines', 'baselines');
+toggle('btn-tetra', 'tetra');
+toggle('btn-doa', 'doa');
+toggle('btn-target', 'target');
+
+document.getElementById('btn-iso').addEventListener('click', () => {
+  camera.position.set(2.2, 1.6, 2.2); controls.target.set(0,0,0);
+  setView('btn-iso');
+});
+document.getElementById('btn-top').addEventListener('click', () => {
+  camera.position.set(0.001, 3.5, 0.001); controls.target.set(0,0,0);
+  setView('btn-top');
+});
+document.getElementById('btn-front').addEventListener('click', () => {
+  camera.position.set(0, 0.4, 3.0); controls.target.set(0,0,0);
+  setView('btn-front');
+});
+function setView(id) {
+  ['btn-iso','btn-top','btn-front'].forEach(b => setActive(b, b===id));
+}
+
+function setConfig(name, btnId) {
+  currentMics = buildConfig(name);
+  ['btn-config-tetra','btn-config-planar','btn-config-3'].forEach(b => setActive(b, b===btnId));
+  applyFlags();
+}
+document.getElementById('btn-config-tetra').addEventListener('click', () => setConfig('tetra', 'btn-config-tetra'));
+document.getElementById('btn-config-planar').addEventListener('click', () => setConfig('planar', 'btn-config-planar'));
+document.getElementById('btn-config-3').addEventListener('click', () => setConfig('tri', 'btn-config-3'));
+
+// ---------- Resize ----------
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ---------- Animation ----------
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Spin propellers
+  drone.traverse(o => { if (o.userData.spinning) o.rotation.y = t * 80; });
+
+  // Move target drone in a circle
+  const r = 2.4, h = 0.9;
+  const targetPos = new THREE.Vector3(
+    Math.cos(t * 0.35) * r,
+    h + Math.sin(t * 0.5) * 0.3,
+    Math.sin(t * 0.35) * r
+  );
+  target.position.copy(targetPos);
+  // spin target props
+  target.children.forEach((c, i) => { if (i > 0) c.rotation.y = t * 60; });
+  target.rotation.y = -t * 0.35 + Math.PI / 2;
+
+  // Expanding sound rings (face the camera-ish)
+  for (let i = 0; i < waves.length; i++) {
+    const phase = (t * 0.6 + i * 0.25) % 1.0;
+    const scale = 0.2 + phase * 4.0;
+    waves[i].scale.setScalar(scale);
+    waves[i].position.copy(targetPos);
+    waves[i].lookAt(0, 0, 0);
+    waves[i].material.opacity = 0.5 * (1 - phase);
+  }
+
+  // DOA arrow from drone center pointing at target
+  const dir = targetPos.clone().normalize();
+  const endLen = 1.8;
+  const end = dir.clone().multiplyScalar(endLen);
+  doaLine.geometry.setFromPoints([new THREE.Vector3(0,0,0), end]);
+  doaHead.position.copy(end);
+  doaHead.lookAt(end.clone().add(dir));
+  doaHead.rotateX(Math.PI / 2);
+
+  // Subtle drone hover wobble
+  drone.position.y = Math.sin(t * 1.8) * 0.015;
+  drone.rotation.y = Math.sin(t * 0.4) * 0.05;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+boot('rendering ✓ (drag to orbit)');
+setTimeout(() => { if (bootEl) bootEl.style.display = 'none'; }, 3000);
