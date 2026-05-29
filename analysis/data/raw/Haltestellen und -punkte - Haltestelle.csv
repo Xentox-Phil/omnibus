@@ -1,0 +1,378 @@
+;Nummer;K¸rzel;Langname;Kurzname;Online-Info Haltestelle;Externe Online-Info Haltestelle;Anz. Pos.;Ansage-Nr.;Linien-Darst.;Funkgest¸tzt;÷ffne Verweis;X-Koord;Y-Koord;Globale Haltestellen-Kennung
+1;80002;880B;880 Burgweinting           an;880 Burgweinting           an;;;1;0;;X;;0;0;de:09362:880
+2;35;AbzRos;Abzw. Rosenhof;Abzw. Rosenhof;;;2;0;;;;0;0;de:09375:35
+3;15012;ADLE;Josef-Adler-Straﬂe;Josef-Adler-Straﬂe;;;2;210;X;;;0;0;de:09362:15012
+4;11041;AKORN;Alter Kornmarkt;Alter Kornmarkt;;;2;608;X;;;0;0;de:09362:11041
+5;14057;AMBA;Leoprechting Am Bach;Leoprechting Am Bach;;;1;182;X;;;0;0;de:09362:14057
+6;12051;AMBE;Amberger Straﬂe;Amberger Straﬂe;;;4;474;X;;;0;0;de:09362:12051
+7;15001;AMG;Albertus-Magnus-Gymnasium;Albertus-Magnus-Gymnasium;;;2;293;X;;;0;0;de:09362:15001
+8;15003;ANNA;Annahofstraﬂe;Annahofstraﬂe;;;1;13;X;;;0;0;de:09362:15003
+9;14073;ANTO;Antoniuskirche;Antoniuskirche;;;3;69;X;;;0;0;de:09362:14073
+10;11010;APLZ;Arnulfsplatz;Arnulfsplatz;X;;5;17;X;;;0;0;de:09362:11010
+11;11001;ARAT;Altes Rathaus;Altes Rathaus;;;1;270;X;;;0;0;de:09362:11001
+12;12003;ARDE;Ardennenstraﬂe;Ardennenstraﬂe;;;2;14;X;;;0;0;de:09362:12003
+13;10296;AREN;Donau-Arena;Donau-Arena;;;2;262;X;;;0;0;de:09362:10296
+14;12004;ARGO;Argonnenstraﬂe;Argonnenstraﬂe;;;1;15;X;;;0;0;de:09362:12004
+15;592;ASAM;Asamstraﬂe;Asamstraﬂe;;;3;113;X;;;0;0;de:09362:592
+16;16015;ASCH;Aschenauer Straﬂe;Aschenauer Straﬂe;;;2;358;X;;;0;0;de:09362:16015
+17;14001;AUER;Alfons-Auer-Straﬂe;Alfons-Auer-Straﬂe;;;4;4;X;;;0;0;de:09362:14001
+18;14006;AUGS;Augsburger Straﬂe;Augsburger Straﬂe;X;;2;3;X;;;0;0;de:09362:14006
+19;12005;AUSS;Aussiger Straﬂe;Aussiger Straﬂe;;;4;18;X;;;0;0;de:09362:12005
+20;14070;AUTO;Autohaus Kraus;Autohaus Kraus;;;1;146;X;;;0;0;de:09362:14070
+21;14007;BAJU;Bajuwarenstraﬂe;Bajuwarenstraﬂe;;;3;19;X;;;0;0;de:09362:14007
+22;13054;BARE;Barbing Regensburgerstr.;Barbing Regensburgerstr.;;;1;542;X;;;0;0;de:09375:13054
+23;12071;BASE;Baseball-Stadion;Baseball-Stadion;;;2;471;X;;;0;0;de:09362:12071
+24;13051;BAWE;Barbing West;Barbing West;;;1;543;X;;;0;0;de:09375:13051
+25;14094;BEET;Beethovenstraﬂe;Beethovenstraﬂe;;;2;396;X;;;0;0;de:09362:14094
+26;12108;BEID;Bei der Anhalt;Bei der Anhalt;;;2;0;;;;0;0;de:09362:12108
+27;14008;BENZ;Benzstraﬂe;Benzstraﬂe;X;;4;20;X;;;0;0;de:09362:14008
+28;12012;BERC;Berchinger Straﬂe;Berchinger Straﬂe;;;2;595;X;;;0;0;de:09362:12012
+29;12006;BERL;Berliner Straﬂe;Berliner Straﬂe;X;;2;21;X;;;0;0;de:09362:12006
+30;588;BIOP;Am Biopark;Am Biopark;;;4;476;X;;;0;0;de:09362:588
+31;14074;BISC;Bischof-Konrad-Str.;Bischof-Konrad-Str.;;;2;108;X;;;0;0;de:09362:14074
+32;13002;BMW;Harting BMW Tor 2;Harting BMW Tor 2;;;1;276;X;;;0;0;de:09362:13002
+33;13001;BMWA;BMW Ausbildungszentrum;BMW Ausbildungszentrum;;;2;275;X;;;0;0;de:09362:13001
+34;11161;BOCK;Walhalla Bockerl;Walhalla Bockerl;;;1;589;X;;;0;0;de:09362:11161
+35;14011;BOEL;Boelckestraﬂe;Boelckestraﬂe;;;2;23;X;;;0;0;de:09362:14011
+36;15004;BOES;Boessnerstraﬂe;Boessnerstraﬂe;;;5;295;X;;;0;0;de:09362:15004
+37;15006;BONI;St. Bonifaz;St. Bonifaz;;;1;567;X;;;0;0;de:09362:15006
+38;11020;BPLZ;Bismarckplatz;Bismarckplatz;X;;3;22;X;;;0;0;de:09362:11020
+39;718;BRAC;Roter-Brach-Weg;Roter-Brach-Weg;;;3;284;X;;;0;0;de:09362:718
+40;14012;BRAH;Brahmsstraﬂe;Brahmsstraﬂe;;;2;24;X;;;0;0;de:09362:14012
+41;12007;BRAN;Brandlberg;Brandlberg;;;2;25;X;;;0;0;de:09362:12007
+42;12018;BROM;Brombeerweg;Brombeerweg;;;2;597;X;;;0;0;de:09362:12018
+43;13003;BUKA;Bukarester Straﬂe;Bukarester Straﬂe;;;3;27;X;;;0;0;de:09362:13003
+44;15020;BURG;Michael-Burgau-Straﬂe;Michael-Burgau-Straﬂe;;;2;112;X;;;0;0;de:09362:15020
+45;14024;BWGA;Burgw. Garbenstraﬂe;Burgw. Garbenstraﬂe;;;2;398;X;;;0;0;de:09362:14024
+46;10339;BWHF;Burgweinting Bahnhof;Burgweinting Bahnhof;X;X;5;339;X;;;0;0;de:09362:10339
+47;14102;BWHH;Burgw. Hermann-Hˆcherl-Str.;Burgw. Hermann-Hˆcherl-Str.;;;4;400;X;;;0;0;de:09362:14102
+48;14013;BWKI;Burgweinting Kirche;Burgweinting Kirche;;;2;263;X;;;0;0;de:09362:14013
+49;14015;BWKU;Burgw. Kurzer Weg;Burgw. Kurzer Weg;;;2;323;X;;;0;0;de:09362:14015
+50;14014;BWLA;Burgw. Langer Weg;Burgw. Langer Weg;;;2;322;X;;;0;0;de:09362:14014
+51;14034;BWMI;Burgw. Minervastraﬂe;Burgw. Minervastraﬂe;;;2;399;X;;;0;0;de:09362:14034
+52;4048;BWRO;Burgw. Rˆmerstraﬂe;Burgw. Rˆmerstraﬂe;;;3;427;X;X;;0;0;de:09362:14048
+53;10340;BWRU;Rudolf-Schlichtinger-Str.;Rudolf-Schlichtinger-Str.;;;2;397;X;;;0;0;de:09362:10340
+54;14033;BWSS;Burgw. Sophie-Scholl-Str.;Burgw. Sophie-Scholl-Str.;;;2;314;X;;;0;0;de:09362:14033
+55;14016;BWVA;Burgw. Friedr.-Viehbacher-Allee;Burgw. Friedr.-Viehbacher-Allee;X;;2;265;X;;;0;0;de:09362:14016
+56;15039;CLER;Clermont-Ferrand-Allee;Clermont-Ferrand-Allee;;;2;516;X;;;0;0;de:09362:15039
+57;616;COBU;Coburger Straﬂe;Coburger Straﬂe;;;4;433;X;;;0;0;de:09362:616
+58;12010;COLM;Colmarer Straﬂe;Colmarer Straﬂe;;;2;0;;X;;0;0;de:09362:12010
+59;14054;CRAN;Cranachweg;Cranachweg;;;2;376;X;;;0;0;de:09362:14054
+60;14108;DAIM;Daimlerstraﬂe;Daimlerstraﬂe;;;2;616;X;;;0;0;de:09362:14108
+61;12009;DANZ;Danziger Freiheit;Danziger Freiheit;;;2;29;X;;;0;0;de:09362:12009
+62;11045;DAUS;Donau Ausstellung;Donau Ausstellung;;;1;359;X;;;0;0;de:09362:11045
+63;14002;DECH;Dechbetten;Dechbetten;;;3;12;X;;;0;0;de:09362:14002
+64;14004;DECT;Dechbetten/TELIS FINANZ;Dechbetten/TELIS FINANZ;;;2;390;X;;;0;0;de:09362:14004
+65;15005;DEIN;Deiningerstraﬂe;Deiningerstraﬂe;;;2;31;X;;;0;0;de:09362:15005
+66;12;DEST;Dechbettener Straﬂe;Dechbettener Straﬂe;;;2;540;X;X;;0;0;de:09362:12
+67;11040;DOM;Domplatz;Domplatz;;;4;34;X;;;0;0;de:09362:11040
+68;12015;DONA;Donaustaufer Straﬂe;Donaustaufer Straﬂe;;;3;35;X;;;0;0;de:09362:12015
+69;15013;DORN;Dornierstraﬂe;Dornierstraﬂe;;;2;316;X;;;0;0;de:09362:15013
+70;16028;DORW;Dornfelder Weg;Dornfelder Weg;;;2;273;X;;;0;0;de:09362:16028
+71;11030;DPLZ;Dachauplatz;Dachauplatz;X;;5;28;X;;;0;0;de:09362:11030
+72;16036;DREI;Dreifaltigkeitsberg;Dreifaltigkeitsberg;;;5;220;X;;;0;0;de:09362:16036
+73;16037;DREK;Dreifaltigkeitsberg Krematorium;Dreifaltigkeitsberg Krematorium;;;1;643;X;;;0;0;de:09362:16037
+74;14019;DROS;Burgw. Droste-H¸lshoff-Weg;Burgw. Droste-H¸lshoff-Weg;;;2;331;X;;;0;0;de:09362:14019
+75;18008;DSBA;Donaustauf Bayerwaldstraﬂe;Donaustauf Bayerwaldstraﬂe;;;2;340;X;;;0;0;de:09375:18008
+76;18010;DSDE;Donaustauf Kriegerdenkmal;Donaustauf Kriegerdenkmal;;;2;205;X;;;0;0;de:09375:18010
+77;18009;DSKR;Donaustauf Krankenhaus;Donaustauf Krankenhaus;;;1;206;X;;;0;0;de:09375:18009
+78;868;DSRE;Donaustauf Reifldinger Str.;Donaustauf Reifldinger Str.;;;1;382;X;;;0;0;de:09375:868
+79;111;DSSC;Donaustauf Schule;Donaustauf Schule;;;2;208;X;;;0;0;de:09375:111
+80;18011;DSSI;Donaustauf Schillerstraﬂe;Donaustauf Schillerstraﬂe;;;2;207;X;;;0;0;de:09375:18011
+81;18012;DSWA;Donaustauf Walhallastraﬂe;Donaustauf Walhallastraﬂe;;;2;321;X;;;0;0;de:09375:18012
+82;15007;DUER;D¸rerstraﬂe;D¸rerstraﬂe;;;2;38;X;;;0;0;de:09362:15007
+83;11162;DULT;Dultplatz;Dultplatz;;;2;309;X;;;0;0;de:09362:11162
+84;14028;EBER;Friedrich-Ebert-Str.;Friedrich-Ebert-Str.;;;1;45;X;;;0;0;de:09362:14028
+85;14104;EHRE;Ehrenfelsstraﬂe;Ehrenfelsstraﬂe;;;2;192;X;;;0;0;de:09362:14104
+86;11050;EIB;Eiserne Br¸cke;Eiserne Br¸cke;;;2;310;X;;;0;0;de:09362:11050
+87;13028;EISA;Eisackerstraﬂe;Eisackerstraﬂe;;;2;621;X;;;0;0;de:09362:13028
+88;15038;ELIS;Elisabethstraﬂe;Elisabethstraﬂe;;;1;392;X;;;0;0;de:09362:15038
+89;1925;ERBO;Erboweg;Erboweg;;;1;544;X;;;0;0;de:09362:1925
+90;14009;ERHA;Ludwig-Erhard-Str.;Ludwig-Erhard-Str.;;;2;37;X;;;0;0;de:09362:14009
+91;14032;ERMI;Erminoldweg;Erminoldweg;;;1;204;X;;;0;0;de:09362:14032
+92;11151;FEND;Fritz-Fend-Straﬂe;Fritz-Fend-Straﬂe;;;2;312;X;;;0;0;de:09362:11151
+93;11060;FISH;Fischmarkt;Fischmarkt;;;2;42;X;;;0;0;de:09362:11060
+94;12052;FLUD;Fluderstraﬂe;Fluderstraﬂe;;;2;475;X;;;0;0;de:09362:12052
+95;14093;FOS;FOS/BOS;FOS/BOS;;;2;508;X;;;0;0;de:09362:14093
+96;13009;FRAP;Frachtpostzentrum;Frachtpostzentrum;;;2;136;X;X;;0;0;de:09362:13009
+97;14045;FRIE;Kaiser-Friedrich-Allee;Kaiser-Friedrich-Allee;;;2;82;X;;;0;0;de:09362:14045
+98;14066;FRIO;Oberer kath. Friedhof;Oberer kath. Friedhof;;;3;120;X;;;0;0;de:09362:14066
+99;14098;FRIS;Friesenstraﬂe;Friesenstraﬂe;;;2;393;X;;;0;0;de:09362:14098
+100;14082;FRIU;Unterer kath. Friedhof;Unterer kath. Friedhof;;;2;181;X;;;0;0;de:09362:14082
+101;14023;FRIZ;Evang. Zentralfriedhof;Evang. Zentralfriedhof;;;2;40;X;;;0;0;de:09362:14023
+102;11065;GABE;Gabelsbergerstraﬂe;Gabelsbergerstraﬂe;;;3;216;X;;;0;0;de:09362:11065
+103;151;GALH;Gallingkofen/Hochmuth;Gallingkofen/Hochmuth;;;2;49;X;;;0;0;de:09362:151
+104;12014;GALL;Gallingkofen;Gallingkofen;;;3;49;X;;;0;0;de:09362:12014
+105;14035;GEIB;Geibelplatz;Geibelplatz;;;2;50;X;;;0;0;de:09362:14035
+106;16014;GESC;Gerhardinger Schule;Gerhardinger Schule;;;1;355;X;;;0;0;de:09362:16014
+107;14022;GESS;Dr.-Gessler-Straﬂe;Dr.-Gessler-Straﬂe;;;3;36;X;;;0;0;de:09362:14022
+108;12016;GEWE;Gewerbepark/Donau-Arena;Gewerbepark/Donau-Arena;;;2;425;X;;;0;0;de:09362:12016
+109;12079;GEWEE;Gewerbepark (Ersatz-Hst.);Gewerbepark (Ersatz-Hst.);;;2;51;;;;0;0;de:09362:12079:0:1
+110;12109;GLHS;Glash¸ttenstraﬂe;Glash¸ttenstraﬂe;;;1;0;X;;;0;0;
+111;15009;GOET;Goethestraﬂe;Goethestraﬂe;;;2;165;X;;;0;0;de:09362:15009
+112;163;GOGY;Goethe-Gymnasium;Goethe-Gymnasium;;;2;422;X;;;0;0;de:09362:163
+113;12102;GPAS;Gewerbepark Am See;Gewerbepark Am See;;;1;0;X;;;0;0;de:09362:12102
+114;12105;GPHA;Gewerbepark Hotel Achat;Gewerbepark Hotel Achat;;;1;0;X;;;0;0;de:09362:12105
+115;11070;GPLZ;Gutenbergplatz;Gutenbergplatz;;;2;58;X;;;0;0;de:09362:11070
+116;12101;GPOS;Gewerbepark Ost;Gewerbepark Ost;;;2;0;X;;;0;0;de:09362:12101
+117;12107;GPPN;Gewerbepark Parkhaus Nord;Gewerbepark Parkhaus Nord;;;1;0;X;;;0;0;de:09362:12107
+118;12103;GPPS;Gewerbepark Parkhaus S¸d;Gewerbepark Parkhaus S¸d;;;2;0;X;;;0;0;de:09362:12103
+119;14105;GPRU;Groﬂpr¸fening;Groﬂpr¸fening;;;1;545;X;;;0;0;de:09362:14105
+120;12106;GPTZ;Gewerbepark Tagungszentrum;Gewerbepark Tagungszentrum;;;1;0;X;;;0;0;de:09362:12106
+121;12104;GPWE;Gewerbepark West;Gewerbepark West;;;1;0;X;;;0;0;de:09362:12104
+122;14036;GRAB;Graﬂ Brunnstraﬂe;Graﬂ Brunnstraﬂe;;;4;59;X;;;0;0;de:09362:14036
+123;14061;GRAN;Graﬂ Nord;Graﬂ Nord;;;2;531;X;;;0;0;de:09362:14061
+124;14047;GRAS;Graﬂ;Graﬂ;;;3;52;X;;;0;0;de:09362:14047
+125;14037;GRAW;Graﬂer Weg;Graﬂer Weg;;;3;53;X;;;0;0;de:09362:14037
+126;593;GRED;Auf der Grede;Auf der Grede;;;2;267;X;;;0;0;de:09362:593
+127;169;GREF;Greflingerstraﬂe;Greflingerstraﬂe;;;2;54;X;;;0;0;de:09362:169
+128;17001;GTFE;Gr¸nthal Feuerwehr;Gr¸nthal Feuerwehr;;;2;46;X;;;0;0;de:09375:17001
+129;1177;GTIS;Gr¸nthal Irlbacher Straﬂe;Gr¸nthal Irlbacher Straﬂe;;;2;500;X;;;0;0;de:09375:177
+130;17002;GTNO;Gr¸nthal (Wenzenbach);Gr¸nthal (Wenzenbach);;;1;298;X;;;0;0;de:09375:17002
+131;12017;GTS;Gr¸nthaler Straﬂe;Gr¸nthaler Straﬂe;;;2;55;X;;;0;0;de:09362:12017
+132;15008;GUMP;Gumpelzhaimerstraﬂe;Gumpelzhaimerstraﬂe;;;2;292;X;;;0;0;de:09362:15008
+133;14097;GUND;Burgunderstraﬂe;Burgunderstraﬂe;;;2;394;X;;;0;0;de:09362:14097
+134;14038;GUTE;Gutenbergstraﬂe;Gutenbergstraﬂe;;;3;57;X;;;0;0;de:09362:14038
+135;14068;HAHN;Otto-Hahn-Straﬂe;Otto-Hahn-Straﬂe;;;3;128;X;;;0;0;de:09362:14068
+136;12020;HART;Harthof;Harthof;;;2;64;X;;;0;0;de:09362:12020
+137;12011;HARW;Harthofer Weg;Harthofer Weg;;;4;0;;;;0;0;de:09362:12011
+138;12021;HARZ;Harzstraﬂe;Harzstraﬂe;;;2;65;X;;;0;0;de:09362:12021
+139;12022;HASL;Haslbach;Haslbach;;;1;66;X;;;0;0;de:09362:12022
+140;598;HASW;Haslbachweg;Haslbachweg;;;2;111;X;;;0;0;de:09362:598
+141;14039;HATL;Franz-Hartl-Straﬂe;Franz-Hartl-Straﬂe;;;2;324;X;;;0;0;de:09362:14039
+142;14041;HAYD;Haydnstraﬂe;Haydnstraﬂe;X;;3;68;X;;;0;0;de:09362:14041
+143;11090;HBF;Hauptbahnhof;Hauptbahnhof;X;;21;67;X;;;0;0;de:09362:11090
+144;14031;HBFS;HBF S¸d/Arcaden;HBF S¸d/Arcaden;X;;5;424;X;;;0;0;de:09362:14031
+145;11095;HBWE;Hauptbahnhof West;Hauptbahnhof West;;;1;615;X;;;0;0;de:09362:11095
+146;15014;HEDW;Hedwigstraﬂe;Hedwigstraﬂe;;;1;315;X;;;0;0;de:09362:15014
+147;15019;HEIN;Heinkelstraﬂe;Heinkelstraﬂe;;;2;487;X;;;0;0;de:09362:15019
+148;13032;HEIS;Werner-Heisenberg-Straﬂe;Werner-Heisenberg-Straﬂe;;;2;572;X;;;0;0;de:09362:13032
+149;13024;HENL;Peter-Henlein-Str.;Peter-Henlein-Str.;;;2;132;X;;;0;0;de:09362:13024
+150;14055;HEUS;Theodor-Heuss-Platz;Theodor-Heuss-Platz;;;2;91;X;;;0;0;de:09362:14055
+151;14042;HGEI;Hermann-Geib-Straﬂe;Hermann-Geib-Straﬂe;;;3;70;X;;;0;0;de:09362:14042
+152;20100;HIMMEL;Himmel;Himmel;;;1;0;;;;0;0;de:09362:20100
+153;12023;HINTERE;Hintere Keilbergstraﬂe;Hintere Keilbergstraﬂe;;;2;307;X;;;0;0;de:09362:12023
+154;230;HOEF;Hˆfling;Hˆfling;;;2;596;X;;;0;0;de:09362:230
+155;14027;HOES;Johann-Hˆsl-Straﬂe;Johann-Hˆsl-Straﬂe;;;5;336;X;;;0;0;de:09362:14027
+156;14043;HOFG;Hofgartenweg;Hofgartenweg;;;1;73;X;;;0;0;de:09362:14043
+157;57;HOHO;Am Holzhof;Am Holzhof;;;2;520;X;;;0;0;de:09362:57
+158;13020;HOKR;Hohes Kreuz;Hohes Kreuz;;;2;74;X;;;0;0;de:09362:13020
+159;17005;HOLI;Zur Hohen Linie;Zur Hohen Linie;;;2;308;X;;;0;0;de:09362:17005
+160;12027;HOLL;Hollerweg;Hollerweg;;;2;435;X;;;0;0;de:09362:12027
+161;20101;H÷LLE;Hˆlle;Hˆlle;;;1;0;;;;0;0;de:09362:20101
+162;12024;HOLZ;Holzgartenstraﬂe;Holzgartenstraﬂe;;;2;75;X;;;0;0;de:09362:12024
+163;997;HOPP;Hoppestraﬂe;Hoppestraﬂe;;;2;539;X;;;0;0;de:09362:11
+164;14095;HORN;Hornstraﬂe;Hornstraﬂe;;;2;395;X;;;0;0;de:09362:14095
+165;11080;HPLZ;Haidplatz;Haidplatz;;;1;60;X;;;0;0;de:09362:11080
+166;13010;HTFR;Harting Friedhof;Harting Friedhof;;;2;280;X;;;0;0;de:09362:13010
+167;13016;HTHO;Harting Holzerstraﬂe;Harting Holzerstraﬂe;;;1;311;X;;;0;0;de:09362:13016
+168;13040;HTJU;Harting Junkersstraﬂe;Harting Junkersstraﬂe;;;2;343;X;;;0;0;de:09362:13040
+169;13012;HTKI;Harting Kirche;Harting Kirche;;;3;279;X;;;0;0;de:09362:13012
+170;13013;HTPL;Max-Planck-Straﬂe;Max-Planck-Straﬂe;;;3;274;X;;;0;0;de:09362:13013
+171;13011;HTQU;Herbert-Quandt-Allee;Herbert-Quandt-Allee;;;4;277;X;;;0;0;de:09362:13011
+172;13014;HTRA;Harting Rathenaustraﬂe;Harting Rathenaustraﬂe;;;2;329;X;;;0;0;de:09362:13014
+173;13015;HTWE;Harting Wendeplatz;Harting Wendeplatz;;;2;278;X;;;0;0;de:09362:13015
+174;14044;HUMB;Humboldtstr. B¸rgerhaus;Humboldtstr. B¸rgerhaus;;;1;380;X;;;0;0;de:09362:14044
+175;14086;HUMS;Humboldtstraﬂe;Humboldtstraﬂe;;;2;76;X;X;;0;0;de:09362:14086
+176;944;IKEA;IKEA;IKEA;;;1;534;X;;;0;0;de:09362:944
+177;235;IRL;Irl Ortsmitte;Irl Ortsmitte;;;2;536;X;;;0;0;de:09362:235
+178;239;IRLA;Abzweigung Irlmauth;Abzweigung Irlmauth;;;1;410;X;;;0;0;de:09362:239
+179;13021;IRLH;An der Irler Hˆhe;An der Irler Hˆhe;;;1;78;X;;;12;49;de:09362:13021
+180;13047;IRLM;Irlmauth;Irlmauth;;;3;558;X;;;0;0;de:09362:13047
+181;1839;IRSC;Irlbach Schule;Irlbach Schule;;;2;501;X;;;0;0;de:09375:839
+182;13031;IRWE;Irl West;Irl West;;;2;573;X;;;0;0;de:09362:13031
+183;14003;ISEL;An der Iselrinne;An der Iselrinne;;;3;9;X;;;0;0;de:09362:14003
+184;14079;JAHN;Jahnstadion Regensburg;Jahnstadion Regensburg;;;7;438;X;;;0;0;de:09362:14079
+185;14081;JAHNP;Jahnstadion Regensburg/P2;Jahnstadion Regensburg / P2;;;3;488;X;;;0;0;de:09362:14081
+186;14056;JOSE;Krankenhaus St. Josef;Krankenhaus St. Josef;;;2;96;X;;;0;0;de:09362:14056
+187;11011;JUST;Justizgeb‰ude;Justizgeb‰ude;X;;4;80;X;;;0;0;de:09362:11011
+188;16002;KAGE;Kager;Kager;;;2;81;X;;;0;0;de:09362:16002
+189;12030;KALK;Kalkwerk;Kalkwerk;X;X;2;83;X;;;0;0;de:09362:12030
+190;14103;KART;Karthauser Straﬂe;Karthauser Straﬂe;;;2;562;X;;;0;0;de:09362:14103
+191;13029;KAST;Kastenmaierstraﬂe;Kastenmaierstraﬂe;;;1;598;X;;;0;0;de:09362:13029
+192;14059;KAUL;Kaulbachweg;Kaulbachweg;;;2;26;X;;;0;0;de:09362:14059
+193;11000;KBAB;Hintere Keilbergstraﬂe;Hintere Keilbergstraﬂe;;;2;307;X;;;0;0;de:09362:11000
+194;12031;KBHS;Keilberger Hauptstraﬂe;Keilberger Hauptstraﬂe;;;2;87;X;;;0;0;de:09362:12031
+195;12032;KBWE;Keilberg;Keilberg;;;2;86;X;;;0;0;de:09362:12032
+196;11181;KEPL;Keplerstraﬂe;Keplerstraﬂe;;;2;442;X;;;0;0;de:09362:11181
+197;11111;KHOF;Am Kˆnigshof;Am Kˆnigshof;;;2;269;X;;;0;0;de:09362:11111
+198;15015;KILL;Killermannstraﬂe;Killermannstraﬂe;;;1;88;X;;;0;0;de:09362:15015
+199;14100;KIRC;Kirchmeierstraﬂe;Kirchmeierstraﬂe;;;2;291;X;;;0;0;de:09362:14100
+200;13026;KLEB;Klenzebr¸cke;Klenzebr¸cke;;;2;581;X;;;0;0;de:09362:13026
+201;14051;KLEN;Klenzestraﬂe;Klenzestraﬂe;X;;5;89;X;;;0;0;de:09362:14051
+202;11669;KLIE;Landshuter Straﬂe/Klier;Landshuter Straﬂe/Klier;;;1;580;X;;;0;0;de:09362:669
+203;14052;KLIN;Klinikum;Klinikum;;;2;90;X;;;0;0;de:09362:14052
+204;14096;KLIW;Klinikum West;Klinikum West;;;1;416;X;;;0;0;de:09362:14096
+205;15002;KLOS;An den Klostergr¸nden;An den Klostergr¸nden;;;1;8;X;X;;0;0;de:09362:15002
+206;16004;KNEI;Kneiting;Kneiting;;;1;338;X;;;0;0;de:09375:16004
+207;15011;KOEH;Hermann-Kˆhl-Straﬂe;Hermann-Kˆhl-Straﬂe;;;2;71;X;;;0;0;de:09362:15011
+208;11110;KOEN;Kˆnigsstraﬂe;Kˆnigsstraﬂe;;;2;92;X;;;0;0;de:09362:11110
+209;12033;KOET;Kˆtztinger Straﬂe;Kˆtztinger Straﬂe;;;2;95;X;;;0;0;de:09362:12033
+210;12088;KONR;Konradschule;Konradschule;;;1;319;X;;;0;0;de:09362:12088
+211;811;KORN;Kornweg;Kornweg;;;1;577;X;;;0;0;de:09375:811
+212;13004;KRCH;Kirchhoffstraﬂe;Kirchhoffstraﬂe;;;2;574;X;X;;0;0;de:09362:13004
+213;258;KREH;Kreuzhof;Kreuzhof;;;2;557;X;;;0;0;de:09362:258
+214;13027;KREM;Kremser Straﬂe;Kremser Straﬂe;;;2;402;X;;;0;0;de:09362:13027
+215;14005;KREU;An der Kreuzbreite;An der Kreuzbreite;;;4;11;X;;;0;0;de:09362:14005
+216;12034;KRON;Kronacher Straﬂe;Kronacher Straﬂe;;;2;97;X;;;0;0;de:09362:12034
+217;14046;KSTI;Karl-Stieler-Straﬂe;Karl-Stieler-Straﬂe;X;;3;85;X;;;0;0;de:09362:14046
+218;12035;KULM;Kulmbacher Straﬂe;Kulmbacher Straﬂe;;;2;98;X;;;0;0;de:09362:12035
+219;14106;KUNS;Kunstpark;Kunstpark;;;2;370;X;;;0;0;de:09362:14106
+220;14053;KWSN;Kˆnigswiesen;Kˆnigswiesen;;;1;93;X;;;0;0;de:09362:14053
+221;192;LADE;Kein Zustieg;Kein Zustieg;;;1;1;;;;0;0;de:09362:192
+222;1724;LBZ;Lotte-Branz-Straﬂe;Lotte-Branz-Straﬂe;;;2;528;X;;;0;0;de:09362:1724
+223;12036;LECH;Lechstraﬂe;Lechstraﬂe;X;;4;99;X;;;0;0;de:09362:12036
+224;14060;LEOP;Leoprechting;Leoprechting;;;2;100;X;;;0;0;de:09362:14060
+225;15016;LESS;Lessingstraﬂe;Lessingstraﬂe;;;2;149;X;;;0;0;de:09362:15016
+226;12040;LICH;Lichtenfelser Straﬂe;Lichtenfelser Straﬂe;;;2;102;X;;;0;0;de:09362:12040
+227;13022;LIEB;Liebigstraﬂe;Liebigstraﬂe;;;3;103;X;;;0;0;de:09362:13022
+228;602;LIEP;Lieperkingstraﬂe;Lieperkingstraﬂe;;;2;104;X;;;0;0;de:09362:602
+229;15017;LILI;Lilienthalstraﬂe;Lilienthalstraﬂe;X;;4;105;X;;;0;0;de:09362:15017
+230;12041;LOIS;Loisachstraﬂe;Loisachstraﬂe;X;;2;106;X;;;0;0;de:09362:12041
+231;15018;MARG;Margaretenau/KH Barmh. Br¸der;Margaretenau/KH Barmh. Br¸der;;;2;326;X;;;0;0;de:09362:15018
+232;14050;MARK;Markomannenstraﬂe;Markomannenstraﬂe;;;4;431;X;;;0;0;de:09362:14050
+233;14010;MAYE;Franz-Mayer-Straﬂe;Franz-Mayer-Straﬂe;;;2;575;X;;;0;0;de:09362:14010
+234;80;MBGE;Haus der Bayerischen Geschichte;Haus der Bayerischen Geschichte;;;2;527;X;;;0;0;de:09362:80
+235;12042;MECK;Mecklenburger Straﬂe;Mecklenburger Straﬂe;;;1;110;X;;;0;0;de:09362:12042
+236;12056;MEME;Memeler Straﬂe;Memeler Straﬂe;X;;2;157;X;;;0;0;de:09362:12056
+237;11046;MOBI;Mobilit‰tsdrehscheibe Unterer Wˆhrd;Mobilit‰tsdrehscheibe Unterer Wˆhrd;;;1;607;X;;;0;0;de:09362:11046
+238;12008;MUEH;M¸lhausener Straﬂe;M¸lhausener Straﬂe;;;2;582;X;;;0;0;de:09362:12008
+239;14064;MUEL;Von-M¸ller-Gymnasium;Von-M¸ller-Gymnasium;;;4;320;X;;;0;0;de:09362:14064
+240;65;NAAB;Naabstraﬂe;Naabstraﬂe;;;2;423;X;;;0;0;de:09362:65
+241;12029;NABB;Nabburger Straﬂe;Nabburger Straﬂe;;;4;386;X;;;0;0;de:09362:12029
+242;10284;NAPO;Schule Napoleonstein;Schule Napoleonstein;;;1;43;X;;;0;0;de:09362:10284
+243;13042;Neudeck;Neudecker Straﬂe;Neudecker Straﬂe;;;2;0;X;X;;0;0;de:09375:13042
+244;16033;NEUK;Neukareth;Neukareth;;;1;224;X;;;0;0;de:09375:16033
+245;14063;NEUP;Neupr¸ll;Neupr¸ll;;;4;115;X;;;0;0;de:09362:14063
+246;16005;NEUR;N¸rnberger Straﬂe;N¸rnberger Straﬂe;;;2;372;X;;;0;0;de:09362:16005
+247;14065;NIBE;Nibelungenstraﬂe;Nibelungenstraﬂe;;;4;116;X;;;0;0;de:09362:14065
+248;16003;NIED;Niederwinzer;Niederwinzer;;;2;117;X;;;0;0;de:09362:16003
+249;12028;NIKO;Schule St. Nikola;Schule St. Nikola;;;4;144;X;;;0;0;de:09362:12028
+250;12039;NORD;Nordgaustraﬂe;Nordgaustraﬂe;;;4;387;X;;;0;0;de:09362:12039
+251;11140;NPLZ;Neupfarrplatz;Neupfarrplatz;;;1;114;X;;;0;0;de:09362:11140
+252;1316;NTAU;Neutraubling Aussiger Straﬂe;Neutraubling Aussiger Straﬂe;;;2;546;X;;;0;0;de:09375:316
+253;1318;NTBO;Neutraubling Borsigstraﬂe;Neutraubling Borsigstraﬂe;;;1;547;X;;;0;0;de:09375:318
+254;315;NTBR;Neutraubling Am Braunfeld;Neutraubling Am Braunfeld;;;2;261;X;;;0;0;de:09375:315
+255;1695;NTDE;Neutraubling Dresdener Straﬂe;Neutraubling Dresdener Straﬂe;;;1;548;X;;;0;0;de:09375:695
+256;320;NTFH;Neutraubling Friedhof;Neutraubling Friedhof;;;2;254;X;;;0;0;de:09375:320
+257;13017;NTFR;Neutraubling Friedhofweg;Neutraubling Friedhofweg;;;1;429;X;;;0;0;de:09375:13017
+258;1323;NTGA;Neutraubling G‰rtnersiedlung;Neutraubling G‰rtnersiedlung;;;1;550;X;;;0;0;de:09375:323
+259;13043;NTHA;Neutraubling Haidauer Straﬂe;Neutraubling Haidauer Straﬂe;;;2;255;X;;;0;0;de:09375:13043
+260;13052;NTHT;Neutraubling Hartinger Straﬂe;Neutraubling Hartinger Straﬂe;;;2;258;X;;;0;0;de:09375:13052
+261;13060;NTKE;Neutraubling Keplerstraﬂe;Neutraubling Keplerstraﬂe;;;2;259;X;;;0;0;de:09375:13060
+262;1696;NTMA;Neutraubling Marktplatz;Neutraubling Marktplatz;;;1;552;X;;;0;0;de:09375:696
+263;13044;NTPO;Neutraubling Pommernstraﬂe;Neutraubling Pommernstraﬂe;X;X;2;260;X;;;0;0;de:09375:13044
+264;1992;NTPS;Neutraubling Podersamerstraﬂe;Neutraubling Podersamerstraﬂe;;;1;553;X;;;0;0;de:09375:992
+265;13041;NTRA;Neutraubling Rathaus;Neutraubling Rathaus;;;2;554;X;;;0;0;de:09375:13041
+266;1092;NTWE;Neutraubling Am Weiheracker;Neutraubling Am Weiheracker;;;2;428;X;;;0;0;de:09375:1092
+267;1986;NTZW;Neutraubling Zwickauer Straﬂe;Neutraubling Zwickauer Straﬂe;;;2;529;X;;;0;0;de:09375:986
+268;15021;OBER;Obermaierstraﬂe;Obermaierstraﬂe;;;2;123;X;;;0;0;de:09362:15021
+269;13023;OBHF;Am Ostbahnhof;Am Ostbahnhof;;;2;6;X;;;0;0;de:09362:13023
+270;14067;OISL;Oberisling;Oberisling;;;2;121;X;;;0;0;de:09362:14067
+271;16006;OPF;Oberpfalzbr¸cke;Oberpfalzbr¸cke;;;2;122;X;;;0;0;de:09362:16006
+272;15022;OSTD;Ostdeutsche Galerie;Ostdeutsche Galerie;;;2;125;X;;;0;0;de:09362:15022
+273;13033;OSTE;Osterhofener Straﬂe;Osterhofener Straﬂe;;;2;571;X;;;0;0;de:09362:13033
+274;12045;OSTP;Ostpreuﬂenstraﬂe;Ostpreuﬂenstraﬂe;;;1;127;X;;;0;0;de:09362:12045
+275;14025;OTH;OTH Regensburg;OTH Regensburg;;;2;426;X;;;0;0;de:09362:14025
+276;16008;OWIN;Oberwinzer;Oberwinzer;;;2;124;X;;;0;0;de:09362:16008
+277;14029;PAUL;Kirche Sankt Paul;Kirche Sankt Paul;;;1;84;X;;;0;0;de:09362:14029
+278;20002;PENA;Pentling Ahornstraﬂe;Pentling Ahornstraﬂe;;;2;130;X;;;0;0;de:09375:20002
+279;20003;PENH;Pentling Hˆlkeringer Str.;Pentling Hˆlkeringer Str.;;;4;209;X;;;0;0;de:09375:20003
+280;20005;PENO;Pentling Ortsmitte;Pentling Ortsmitte;;;2;131;X;;;0;0;de:09375:20005
+281;20001;PENT;Pentling;Pentling;;;3;129;X;;;0;0;de:09375:20001
+282;31;PENZ;Abzw. Pentling;Abzw. Pentling;;;1;525;X;;;0;0;de:09375:31
+283;14049;PEST;Pestalozzischule;Pestalozzischule;;;1;345;X;;;0;0;de:09362:14049
+284;16010;PFAB;Pfaffensteiner Br¸cke;Pfaffensteiner Br¸cke;;;2;135;X;;;0;0;de:09362:16010
+285;16034;PFAE;Pf‰lzer Siedlung;Pf‰lzer Siedlung;;;2;223;X;;;0;0;de:09362:16034
+286;12046;POMM;Pommernstraﬂe;Pommernstraﬂe;X;;3;138;X;;;0;0;de:09362:12046
+287;9996;PRHF;Bahnhof Pr¸fening;Bahnhof Pr¸fening;;;1;556;X;;;0;0;de:09362:10
+288;13025;PRIL;Prinz-Ludwig-Straﬂe;Prinz-Ludwig-Straﬂe;;;3;166;X;;;0;0;de:09362:13025
+289;15023;PRUE;Pr¸fening;Pr¸fening;;;2;139;X;;;0;0;de:09362:15023
+290;14069;RAUB;Oberisling Rauberstraﬂe;Oberisling Rauberstraﬂe;;;2;140;X;;;0;0;de:09362:14069
+291;15025;RENP;Rennplatz;Rennplatz;;;2;147;X;;;0;0;de:09362:15025
+292;15026;RENW;Rennweg;Rennweg;;;1;148;X;;;0;0;de:09362:15026
+293;12047;RHBR;Reinhausen Br¸cke;Reinhausen Br¸cke;;;4;142;X;;;0;0;de:09362:12047
+294;12048;RHKI;Reinhausen Kirche;Reinhausen Kirche;;;2;143;X;;;0;0;de:09362:12048
+295;498;RICH;Von-Richthofen-Straﬂe;Von-Richthofen-Straﬂe;;;2;23;X;;;0;0;de:09362:498
+296;12089;RIES;Riesengebirgstraﬂe;Riesengebirgstraﬂe;;;1;0;X;;;0;0;
+297;16042;RINN;Bei der Rinnen;Bei der Rinnen;;;2;521;X;;;0;0;de:09362:16042
+298;20006;ROTS;Pentling Rots‰ulenweg;Pentling Rots‰ulenweg;;;2;151;X;;;0;0;de:09375:20006
+299;14107;RUNT;Runtingerstraﬂe;Runtingerstraﬂe;;;3;592;X;;;0;0;de:09362:14107
+300;15010;SACH;Hans-Sachs-Straﬂe;Hans-Sachs-Straﬂe;;;3;62;X;;;0;0;de:09362:15010
+301;16013;SAD;Schwandorfer Straﬂe;Schwandorfer Straﬂe;;;2;371;X;;;0;0;de:09362:16013
+302;14071;SAFF;Safferlingstraﬂe;Safferlingstraﬂe;X;;5;152;X;;;0;0;de:09362:14071
+303;12055;SAND;Sandgasse;Sandgasse;;;2;156;X;;;0;0;de:09362:12055
+304;12002;SAUE;An der Schauergrube;An der Schauergrube;;;2;10;X;;;0;0;de:09362:12002
+305;920;SBDO;Sulzbach Dorfplatz;Sulzbach Dorfplatz;;;1;352;X;;;0;0;de:09375:920
+306;18026;SBNE;Sulzbach Neue Br¸cke;Sulzbach Neue Br¸cke;;;2;211;X;;;0;0;de:09375:18026
+307;18028;SBWE;Sulzbach West;Sulzbach West;;;2;297;X;;;0;0;de:09375:18028
+308;16009;SCHE;Schelmengraben;Schelmengraben;;;4;330;X;;;0;0;de:09362:16009
+309;12057;SCHL;Schlesierstraﬂe;Schlesierstraﬂe;;;2;167;X;;;0;0;de:09362:12057
+310;14089;SCHO;Schˆneberger Straﬂe;Schˆneberger Straﬂe;;;2;415;X;;;0;0;de:09362:14089
+311;11160;SHOF;Stadtamhof;Stadtamhof;;;4;162;X;;;0;0;de:09362:11160
+312;12075;SIEB;Siebenb¸rgener Str.;Siebenb¸rgener Str.;;;4;158;X;;;0;0;de:09362:12075
+313;12099;SIME;Siemensstraﬂe;Siemensstraﬂe;;;2;313;X;;;0;0;de:09362:12099
+314;14076;SIMM;Simmernstraﬂe;Simmernstraﬂe;;;2;159;X;;;0;0;de:09362:14076
+315;12053;SLBE;Sallerner Berg;Sallerner Berg;;;1;155;X;;;0;0;de:09362:12053
+316;4;SOND;Sonderburger Straﬂe;Sonderburger Straﬂe;;;2;537;X;;;0;0;de:09362:4
+317;15040;SPAR;Sparkasse;Sparkasse;;;2;300;X;;;0;0;de:09362:15040
+318;12077;SPES;Spessartstraﬂe;Spessartstraﬂe;;;2;290;X;;;0;0;de:09362:12077
+319;11170;SPLZ;Stob‰usplatz;Stob‰usplatz;X;X;4;164;X;;;0;0;de:09362:11170
+320;20011;SPOS;Sportpark Ost;Sportpark Ost;;;2;617;X;X;;0;0;de:09362:20011
+321;16011;STEI;Steinweg;Steinweg;;;4;163;X;;;0;0;de:09362:16011
+322;14077;STOR;Theodor-Storm-Straﬂe;Theodor-Storm-Straﬂe;;;2;176;X;;;0;0;de:09362:14077
+323;12078;SUDE;Sudetendeutsche Straﬂe;Sudetendeutsche Straﬂe;;;2;161;X;;;0;0;de:09362:12078
+324;900;SUFE;Sulzfeldstraﬂe;Sulzfeldstraﬂe;;;2;538;X;;;0;0;de:09362:900
+325;14075;SWAB;Schwabenstraﬂe;Schwabenstraﬂe;;;5;172;X;;;0;0;de:09362:14075
+326;14040;SWAE;Joh.-Schwaebl-Straﬂe;Joh.-Schwaebl-Straﬂe;;;2;32;X;;;0;0;de:09362:14040
+327;14020;SWAL;Schwalbenneststraﬂe;Schwalbenneststraﬂe;;;2;30;X;;;0;0;de:09362:14020
+328;12070;SWFL;Fleischmannstraﬂe;Fleischmannstraﬂe;;;2;169;X;;;0;0;de:09362:12070
+329;12072;SWHE;Schwabelweis Heyden;Schwabelweis Heyden;;;2;170;X;;;0;0;de:09362:12072
+330;12073;SWKI;Schwabelweiser Kirchstr.;Schwabelweiser Kirchstr.;;;2;171;X;;;0;0;de:09362:12073
+331;12019;SZIS;Schulzentrum Isarstraﬂe;Schulzentrum Isarstraﬂe;;;2;473;X;;;0;0;de:09362:12019
+332;15028;TAXI;Taxisstraﬂe;Taxisstraﬂe;;;2;174;X;;;0;0;de:09362:15028
+333;14030;TECH;TechCampus/OTH;TechCampus/OTH;X;;2;472;X;;;0;0;de:09362:14030
+334;18031;TEGG;Tegernheim Gh Federl;Tegernheim Gh. Federl;;;2;213;X;X;;0;0;de:09375:18031
+335;1078;TEGK;Tegernheim M-Luther-Kirche;Tegernheim M.-Luther-Kirche;;;2;391;X;;;0;0;de:09375:1078
+336;18030;TEGW;Tegernheim Weinbergstraﬂe;Tegernheim Weinbergstraﬂe;;;2;214;X;;;0;0;de:09375:18030
+337;1971;TEGWE;Tegernheim West (Tarifzone 2);Tegernheim West;;;1;0;;;;0;0;de:09375:1971
+338;20007;TEST 1;Testhaltestelle 1;Testhaltestelle 1;;;1;9990;X;;;0;0;
+339;20008;TEST 2;Testhaltestelle 2;Testhaltestelle 2;;;1;9991;X;;;0;0;
+340;20009;TEST 3;Testhaltestelle 3;Testhaltestelle 3;;;1;9992;X;;;0;0;
+341;20010;TEST 4;Testhaltestelle 4;Testhaltestelle 4;;;1;9993;X;;;0;0;
+342;14072;THER;Theresienkirche;Theresienkirche;;;1;177;X;;;0;0;de:09362:14072
+343;14099;THEW;Theresienweg;Theresienweg;;;1;348;X;;;0;0;de:09362:14099
+344;11180;THUN;Thundorferstraﬂe;Thundorferstraﬂe;;;2;178;X;;;0;0;de:09362:11180
+345;14078;TULP;Tulpenweg;Tulpenweg;;;2;179;X;;;0;0;de:09362:14078
+346;14026;TVZI;Fernsehsender Ziegetsdorf;Fernsehsender Ziegetsdorf;;;2;41;X;;;0;0;de:09362:14026
+347;492;UISL;Unterisling;Unterisling;;;2;0;X;;;0;0;de:09362:492
+348;14080;UNI;Universit‰t;Universit‰t;X;;6;180;X;;;0;0;de:09362:14080
+349;870;UNIS;Uni Sportzentrum;Uni Sportzentrum;;;2;383;X;;;0;0;de:09362:870
+350;12080;VILS;Vilsstraﬂe/Gewerbepark;Vilsstraﬂe/Gewerbepark;X;;3;337;X;;;0;0;de:09362:12080
+351;14092;VITU;Vitusstraﬂe;Vitusstraﬂe;;;2;377;X;;;0;0;de:09362:14092
+352;12081;WEC;Weichs/DEZ;Weichs/DEZ;X;X;6;373;X;;;0;0;de:09362:12081
+353;12001;WECB;An den Weichser Breiten;An den Weichser Breiten;;;2;7;X;;;0;0;de:09362:12001
+354;12085;WECW;Weichser Weg;Weichser Weg;;;3;217;X;;;0;0;de:09362:12085
+355;15032;WEIN;Weinweg;Weinweg;;;2;218;X;;;0;0;de:09362:15032
+356;11190;WEIS;Weiﬂenburgstraﬂe;Weiﬂenburgstraﬂe;X;X;5;186;X;;;0;0;de:09362:11190
+357;14091;WELS;Otto-Wels-Straﬂe;Otto-Wels-Straﬂe;;;3;183;X;;;0;0;de:09362:14091
+358;15033;WERN;Wernerwerkstraﬂe;Wernerwerkstraﬂe;;;4;287;X;;;0;0;de:09362:15033
+359;15034;WESB;Westbad;Westbad;;;2;189;X;;;0;0;de:09362:15034
+360;15035;WESH;Westheim;Westheim;;;2;190;X;;;0;0;de:09362:15035
+361;12086;WETT;Wetterstation;Wetterstation;;;2;191;X;;;0;0;de:09362:12086
+362;12025;WINK;Im Reichen Winkel;Im Reichen Winkel;;;2;77;X;;;0;0;de:09362:12025
+363;15036;WITE;Wittelsbacherstraﬂe;Wittelsbacherstraﬂe;;;2;437;X;;;0;0;de:09362:15036
+364;11049;WOEH;Wˆhrdstraﬂe;Wˆhrdstraﬂe;;;3;342;X;;;0;0;de:09362:11049
+365;14083;WOLK;Wolfgangskirche;Wolfgangskirche;;;2;334;X;;;0;0;de:09362:14083
+366;14090;WOLN;Wolfgangschule Nord;Wolfgangschule Nord;;;2;389;X;;;0;0;de:09362:14090
+367;530;WOLR;Wolframstraﬂe;Wolframstraﬂe;;;2;576;X;;;0;0;de:09362:530
+368;14084;WOLS;Wolfgangschule S¸d;Wolfgangschule S¸d;;;2;388;X;;;0;0;de:09362:14084
+369;540;WUBH;Wutzlhofen Bahnhof;Wutzlhofen Bahnhof;;;2;578;;;;0;0;de:09362:540
+370;16012;WUER;W¸rzburger Straﬂe;W¸rzburger Straﬂe;;;2;195;X;;;0;0;de:09362:16012
+371;12087;WUTZ;Wutzlhofen;Wutzlhofen;;;2;194;X;;;0;0;de:09362:12087
+372;14085;ZEIS;Zeiﬂstraﬂe;Zeiﬂstraﬂe;;;3;196;X;;;0;0;de:09362:14085
+373;14087;ZIEG;Ziegetsdorf;Ziegetsdorf;;;2;197;X;;;0;0;de:09362:14087
+374;546;ZIEH;Ziegetsdorfer Hˆhe;Ziegetsdorfer Hˆhe;;;4;430;X;;;0;0;de:09362:546
+375;14088;ZIES;Ziegetsdorfer Straﬂe;Ziegetsdorfer Straﬂe;;;2;198;X;;;0;0;de:09362:14088
+376;13030;ZUCK;Zuckerfabrikstraﬂe;Zuckerfabrikstraﬂe;;;2;199;X;;;0;0;de:09362:13030
+377;14062;ZWEI;Zweirad Stadler;Zweirad Stadler;;;2;1;X;;;0;0;de:09362:14062

@@ -1,0 +1,98 @@
+date,dow,iso_week,category,event_name,notes,source_year
+2023-01-01,So,52,holiday_public,Neujahr,,2023
+2023-01-06,Fr,1,holiday_public,Heilige Drei Könige,,2023
+2023-02-20,Mo,8,carnival,Rosenmontag,,2023
+2023-03-26,So,12,sommerzeit_start,Beginn der Sommerzeit,clocks +1h at 02:00,2023
+2023-04-07,Fr,14,holiday_public,Karfreitag,,2023
+2023-04-09,So,14,holiday_religious,Ostersonntag,,2023
+2023-04-10,Mo,15,holiday_public,Ostermontag,,2023
+2023-04-11,Di,15,v_frei,V-Frei (post-Ostern),lecture-free Tuesday inside lecture period,2023
+2023-04-28,Fr,17,festival_other,Landesturnfest start,2023-04-28 to 2023-05-01 — one-off mega event,2023
+2023-05-01,Mo,18,holiday_public,Tag der Arbeit,Landesturnfest end coincides,2023
+2023-05-12,Fr,19,festival_dult,Mai-Dult start,2023-05-12 to 2023-05-29,2023
+2023-05-14,So,19,holiday_observance,Muttertag,,2023
+2023-05-18,Do,20,holiday_public,Christi Himmelfahrt,,2023
+2023-05-21,So,20,marathon,Regensburg Marathon,,2023
+2023-05-28,So,21,holiday_religious,Pfingstsonntag,,2023
+2023-05-29,Mo,22,holiday_public,Pfingstmontag,Mai-Dult ends same day,2023
+2023-05-30,Di,22,v_frei,V-Frei (post-Pfingsten),,2023
+2023-06-08,Do,23,holiday_public,Fronleichnam,,2023
+2023-06-16,Fr,24,festival_buergerfest,Bürgerfest start,2023-06-16 to 2023-06-18,2023
+2023-06-18,So,24,festival_buergerfest,Bürgerfest end,,2023
+2023-07-30,So,30,v_frei,V-Frei,marked on calendar — Uni already in semester break,2023
+2023-08-15,Di,33,holiday_public,Mariä Himmelfahrt,,2023
+2023-08-25,Fr,34,festival_dult,Herbst-Dult start,2023-08-25 to 2023-09-10 (footer typo says 2022),2023
+2023-09-10,So,36,festival_dult,Herbst-Dult end,,2023
+2023-09-11,Mo,37,reinforcement_x1,X1 Berufsschulen Verstärkung,Berufsschule restart — extra runs,2023
+2023-10-02,Mo,40,modul,Modul (voraussichtlich),marked with "?" — tentative,2023
+2023-10-03,Di,40,holiday_public,Tag der Deutschen Einheit,,2023
+2023-10-29,So,43,sommerzeit_end,Ende der Sommerzeit,clocks -1h at 03:00,2023
+2023-10-31,Di,44,holiday_observance,Reformationstag,not a Bavarian public holiday — annotation only,2023
+2023-11-01,Mi,44,holiday_public,Allerheiligen,,2023
+2023-12-03,So,48,holiday_observance,1. Advent,,2023
+2023-12-24,So,51,holiday_religious,Heiligabend,EMIL/Altstadtbus stop at 13:00 (Sunday-frequency day),2023
+2023-12-25,Mo,52,holiday_public,1. Weihnachtstag,,2023
+2023-12-26,Di,52,holiday_public,2. Weihnachtstag,,2023
+2023-12-31,So,52,holiday_religious,Silvester,EMIL/Altstadtbus stop at 13:00 (Sunday-frequency day),2023
+2024-01-01,Mo,1,holiday_public,Neujahr,,2024
+2024-01-06,Sa,1,holiday_public,Heilige Drei Könige,,2024
+2024-02-12,Mo,7,carnival,Rosenmontag,,2024
+2024-02-13,Di,7,carnival,Faschingsdienstag,explicitly labeled in 2024 only,2024
+2024-03-29,Fr,13,holiday_public,Karfreitag,,2024
+2024-03-31,So,13,holiday_religious,Ostersonntag,coincides with Beginn Sommerzeit and Ende Eislauf Linie D,2024
+2024-03-31,So,13,sommerzeit_start,Beginn der Sommerzeit,clocks +1h at 02:00,2024
+2024-03-31,So,13,eislauf_end,Ende Eislauf Linie D,2023/24 ice-rink shuttle season ends,2024
+2024-04-01,Mo,14,holiday_public,Ostermontag,,2024
+2024-05-01,Mi,18,holiday_public,Tag der Arbeit,,2024
+2024-05-09,Do,19,holiday_public,Christi Himmelfahrt,,2024
+2024-05-12,So,19,marathon,Regensburg Marathon,coincides with Muttertag,2024
+2024-05-12,So,19,holiday_observance,Muttertag,,2024
+2024-05-19,So,20,holiday_religious,Pfingstsonntag,,2024
+2024-05-20,Mo,21,holiday_public,Pfingstmontag,,2024
+2024-05-21,Di,21,v_frei,V-Frei (post-Pfingsten),,2024
+2024-05-30,Do,22,holiday_public,Fronleichnam,,2024
+2024-08-15,Do,33,holiday_public,Mariä Himmelfahrt,,2024
+2024-09-09,Mo,37,reinforcement_x1,X1 Berufsschulen Verstärkung,Berufsschule restart — extra runs,2024
+2024-09-21,Sa,38,eislauf_start,Beginn Eislauf Linie D,2024/25 ice-rink shuttle season starts,2024
+2024-10-03,Do,40,holiday_public,Tag der Deutschen Einheit,,2024
+2024-10-27,So,43,sommerzeit_end,Ende der Sommerzeit,clocks -1h at 03:00,2024
+2024-10-31,Do,44,holiday_observance,Reformationstag,not a Bavarian public holiday — annotation only,2024
+2024-11-01,Fr,44,holiday_public,Allerheiligen,,2024
+2024-12-01,So,48,holiday_observance,1. Advent,,2024
+2024-12-24,Di,52,holiday_religious,Heiligabend,EMIL/Altstadtbus stop at 13:00; Samstagsfahrplan implied,2024
+2024-12-24,Di,52,service_samstagsfahrplan,Samstagsfahrplan Heiligabend,weekday running Saturday timetable (implied; explicit from 2025),2024
+2024-12-25,Mi,52,holiday_public,1. Weihnachtstag,,2024
+2024-12-26,Do,52,holiday_public,2. Weihnachtstag,,2024
+2024-12-31,Di,1,holiday_religious,Silvester,EMIL/Altstadtbus stop at 13:00; Samstagsfahrplan implied,2024
+2024-12-31,Di,1,service_samstagsfahrplan,Samstagsfahrplan Silvester,weekday running Saturday timetable (implied; explicit from 2025),2024
+2025-01-01,Mi,1,holiday_public,Neujahr,,2025
+2025-01-06,Mo,2,holiday_public,Heilige Drei Könige,,2025
+2025-01-20,Mo,4,fahrplanwechsel,FP-Wechsel,timetable change effective date — only Betriebskalender FP-Wechsel marked across all 3 years,2025
+2025-03-03,Mo,10,carnival,Rosenmontag,,2025
+2025-03-30,So,13,sommerzeit_start,Beginn der Sommerzeit,clocks +1h at 02:00 (inferred — last Sunday in March),2025
+2025-04-18,Fr,16,holiday_public,Karfreitag,,2025
+2025-04-20,So,16,holiday_religious,Ostersonntag,,2025
+2025-04-21,Mo,17,holiday_public,Ostermontag,,2025
+2025-05-01,Do,18,holiday_public,Tag der Arbeit,,2025
+2025-05-11,So,19,holiday_observance,Muttertag,,2025
+2025-05-29,Do,22,holiday_public,Christi Himmelfahrt,,2025
+2025-06-01,So,22,marathon,Regensburg Marathon,,2025
+2025-06-08,So,23,holiday_religious,Pfingstsonntag,,2025
+2025-06-09,Mo,24,holiday_public,Pfingstmontag,,2025
+2025-06-19,Do,25,holiday_public,Fronleichnam,,2025
+2025-06-20,Fr,25,festival_buergerfest,Bürgerfest start,2025-06-20 to 2025-06-22,2025
+2025-06-22,So,25,festival_buergerfest,Bürgerfest end,,2025
+2025-07-10,Do,28,v_frei,V-Frei,lecture-free day inside SS lecture period,2025
+2025-08-15,Fr,33,holiday_public,Mariä Himmelfahrt,,2025
+2025-09-15,Mo,38,reinforcement_x1,X1 Berufsschulen Verstärkung,Berufsschule restart — extra runs,2025
+2025-10-03,Fr,40,holiday_public,Tag der Deutschen Einheit,,2025
+2025-10-26,So,43,sommerzeit_end,Ende der Sommerzeit,clocks -1h at 03:00,2025
+2025-10-31,Fr,44,holiday_observance,Reformationstag,not a Bavarian public holiday — annotation only,2025
+2025-11-01,Sa,44,holiday_public,Allerheiligen,,2025
+2025-11-30,So,48,holiday_observance,1. Advent,,2025
+2025-12-24,Mi,52,holiday_religious,Heiligabend,EMIL/Altstadtbus stop at 13:00,2025
+2025-12-24,Mi,52,service_samstagsfahrplan,Samstagsfahrplan Heiligabend,weekday running Saturday timetable (explicit in 2025 legend),2025
+2025-12-25,Do,52,holiday_public,1. Weihnachtstag,,2025
+2025-12-26,Fr,52,holiday_public,2. Weihnachtstag,,2025
+2025-12-31,Mi,1,holiday_religious,Silvester,EMIL/Altstadtbus stop at 13:00,2025
+2025-12-31,Mi,1,service_samstagsfahrplan,Samstagsfahrplan Silvester,weekday running Saturday timetable (explicit in 2025 legend),2025

@@ -12,6 +12,10 @@ analysis/data/**
 # agents with per-row source URLs; see analysis/docs/EVENTS.md, STRIKES.md):
 !analysis/data/raw/events_regensburg_2024_2025.csv
 !analysis/data/raw/strikes_rvv_2024_2025.csv
+# ...and the Betriebskalender extract (98 rows hand-pulled from the 3 SMO
+# Betriebskalender PDFs — not regenerable without re-reading them; see
+# analysis/docs/BETRIEBSKALENDER.md):
+!analysis/data/raw/betriebskalender_events.csv
 # ...and keep OTH semester .ics (tiny text; re-fetchable but OTH pulls old
 # semesters — fetch_university_calendar.py needs them as a stable fallback):
 !analysis/data/raw/oth_ics/*.ics
@@ -20,6 +24,17 @@ analysis/data/**
 # analysis/docs/GTFS.md). stops_geo.parquet is derived from this + the RVV
 # window parquets, so it stays gitignored like every other data/parquet/ output.
 !analysis/data/raw/gtfs/regensburg_stops.parquet
+# ...and the small RVV/SMO reference docs from the data bundle (text PDFs +
+# stop/zone masters, all <350 KB, useful + not regenerable). What each is and
+# what it's good for: analysis/docs/RAW_INPUTS.md.
+!analysis/data/raw/2023_SMO_Betriebskalender.pdf
+!analysis/data/raw/2024_SMO_Betriebskalender.pdf
+!analysis/data/raw/2025 - SMO-Betriebskalender.pdf
+!analysis/data/raw/Linien_Erklärung.pdf
+!analysis/data/raw/Haltestellen und -punkte - Haltestelle.csv
+# Regensburg census zones (473 polygons, residents by age group). City open
+# data — license unverified, fine for the hackathon; recheck before any public release.
+!analysis/data/raw/Population_Regensburg_2023/**
 
 # --- Python ---
 .venv/
