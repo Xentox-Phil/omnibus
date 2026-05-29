@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Regensburg bus scenario: OSM network + GTFS-imported stops & bus lines.
+     Runs a 1-hour morning window (07:00-08:00) headless; outputs prove buses
+     move stop-to-stop. Open with sumo-gui to watch. -->
+<configuration>
+    <input>
+        <net-file value="regensburg.net.xml"/>
+        <!-- vtypes + stops must load before the vehicles that reference them -->
+        <additional-files value="pt_vtypes.xml,gtfs_pt_stops.add.xml"/>
+        <route-files value="gtfs_pt_vehicles.add.xml"/>
+    </input>
+    <time>
+        <begin value="18000"/>   <!-- 07:00 -->
+        <end value="86400"/>     <!-- 08:00 -->
+    </time>
+    <processing>
+        <ignore-route-errors value="true"/>
+        <time-to-teleport value="300"/>
+    </processing>
+    <output>
+        <tripinfo-output value="out_tripinfo.xml"/>
+        <stop-output value="out_stops.xml"/>
+        <summary-output value="out_summary.xml"/>
+    </output>
+    <report>
+        <no-step-log value="true"/>
+        <duration-log.statistics value="true"/>
+    </report>
+</configuration>

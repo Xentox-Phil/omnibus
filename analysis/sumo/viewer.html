@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Regensburg Bus Simulation — 07:00–08:00</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet"/>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  html,body{margin:0;height:100%;font-family:system-ui,sans-serif}
+  #map{position:absolute;inset:0}
+  #panel{position:absolute;left:12px;top:12px;z-index:1;background:rgba(20,22,28,.88);
+    color:#eee;padding:12px 14px;border-radius:10px;width:320px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+  #panel h1{font-size:14px;margin:0 0 8px}
+  #clock{font-variant-numeric:tabular-nums;font-size:22px;font-weight:600}
+  #sub{font-size:12px;opacity:.7;margin-bottom:10px}
+  .row{display:flex;align-items:center;gap:8px;margin:8px 0}
+  button{background:#3b82f6;border:0;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+  button:hover{background:#2563eb}
+  input[type=range]{flex:1}
+  label{font-size:12px;opacity:.85}
+  #count{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>🚌 Regensburg buses · SUMO replay</h1>
+  <div id="clock">--:--:--</div>
+  <div id="sub">loading…</div>
+  <div class="row">
+    <button id="play">▶ Play</button>
+    <label>Speed <select id="speed">
+      <option value="1">1×</option>
+      <option value="5">5×</option>
+      <option value="10" selected>10×</option>
+      <option value="30">30×</option>
+      <option value="60">60×</option>
+    </select></label>
+  </div>
+  <div class="row"><input id="seek" type="range" min="0" value="0" step="1"/></div>
+  <div id="count">loading…</div>
+  <div class="row" style="margin-top:10px;font-size:11px;opacity:.85">
+    <span>Demand:</span>
+    <span style="flex:1;height:10px;border-radius:5px;
+      background:linear-gradient(90deg,#4169e1,#00c8ff,#3cdc3c,#ffdc00,#ff2800)"></span>
+    <span>low → high</span>
+  </div>
+</div>
+<script>
+const COLORS = ["#ef4444","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899",
+  "#14b8a6","#f97316","#84cc16","#06b6d4","#a855f7","#eab308"];
+const colorFor = line => COLORS[[...line].reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length];
+
+const map = new maplibregl.Map({
+  container:'map',
+  style:{
+    version:8,
+    glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources:{osm:{type:'raster',tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize:256,attribution:'© OpenStreetMap'}},
+    layers:[{id:'osm',type:'raster',source:'osm'}]
+  },
+  center:[12.095,49.013], zoom:12
+});
+
+let DATA, DEMAND=null, frameIdx=0, playing=false, speedMult=10, lastTs=0;
+
+// sample a per-tick array (length n_ticks) at sim time `t` seconds, where each
+// tick spans `resolution_min` minutes. Linearly interpolates between ticks.
+function tickValue(arr,t,resMin){
+  const pos=t/(resMin*60);              // fractional tick index
+  if(pos<=0)return arr[0];
+  if(pos>=arr.length-1)return arr[arr.length-1];
+  const i=Math.floor(pos),f=pos-i;
+  const a=+arr[i],b=+arr[i+1];          // (+) guards stray "…" strings
+  return a+(b-a)*f;
+}
+
+// demand nodes as GeoJSON; `v` (0..1) = pressure_norm at the current sim time.
+function demandToGeoJSON(simTime){
+  const res=DEMAND.resolution_min||15;
+  return {type:'FeatureCollection',features:DEMAND.nodes.map(n=>{
+    const v=tickValue(n.pressure_norm,simTime,res);
+    return {type:'Feature',
+      geometry:{type:'Point',coordinates:[n.lon,n.lat]},
+      properties:{id:n.stop_code,v:v}};
+  })};
+}
+
+function hhmmss(sec){
+  const h=String(Math.floor(sec/3600)).padStart(2,'0');
+  const m=String(Math.floor(sec%3600/60)).padStart(2,'0');
+  const s=String(Math.floor(sec%60)).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+
+function frameToGeoJSON(fr){
+  return {type:'FeatureCollection',features:fr.p.map(([vi,lon,lat,ang])=>({
+    type:'Feature',
+    geometry:{type:'Point',coordinates:[lon,lat]},
+    properties:{color:colorFor(DATA.vehicles[vi].line),line:DATA.vehicles[vi].line,angle:ang}
+  }))};
+}
+
+function render(){
+  const fr=DATA.frames[frameIdx];
+  map.getSource('buses').setData(frameToGeoJSON(fr));
+  if(DEMAND&&map.getSource('demand'))map.getSource('demand').setData(demandToGeoJSON(fr.t));
+  document.getElementById('clock').textContent=hhmmss(fr.t);
+  document.getElementById('count').textContent=`${fr.p.length} buses running · frame ${frameIdx+1}/${DATA.frames.length}`;
+  document.getElementById('seek').value=frameIdx;
+}
+
+function tick(ts){
+  if(playing){
+    if(!lastTs)lastTs=ts;
+    const dt=(ts-lastTs)/1000;            // real seconds elapsed
+    const simAdvance=dt*speedMult;        // sim seconds to advance
+    const framesAdvance=simAdvance/DATA.step;
+    if(framesAdvance>=1){
+      frameIdx=Math.min(frameIdx+Math.floor(framesAdvance),DATA.frames.length-1);
+      lastTs=ts; render();
+      if(frameIdx>=DATA.frames.length-1){playing=false;document.getElementById('play').textContent='▶ Play';}
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+map.on('load',async()=>{
+  DATA=await(await fetch('viewer_data.json')).json();
+  document.getElementById('seek').max=DATA.frames.length-1;
+  // dynamic subtitle: real date + actual time window of this run
+  const tA=DATA.frames[0].t, tB=DATA.frames[DATA.frames.length-1].t;
+  const hm=s=>`${String(s/3600|0).padStart(2,'0')}:${String(s%3600/60|0).padStart(2,'0')}`;
+  document.getElementById('sub').textContent=
+    `RVV · ${DATA.date||'?'} · ${hm(tA)}–${hm(tB)}`;
+  frameIdx=DATA.frames.findIndex(f=>f.p.length>0);  // skip empty lead-in (07:00)
+  if(frameIdx<0)frameIdx=0;
+  // --- demand overlay (drawn UNDER the buses) ---
+  try{ DEMAND=await(await fetch('demand.json')).json(); }catch(e){ DEMAND=null; }
+  if(DEMAND){
+    const t0=DATA.frames[frameIdx].t;
+    map.addSource('demand',{type:'geojson',data:demandToGeoJSON(t0)});
+
+    // HEATMAP at ALL zoom levels. Radius grows with zoom so blobs stay
+    // ~stop-sized on the ground (matches the zoomed-in reference image).
+    map.addLayer({id:'demand-heat',type:'heatmap',source:'demand',
+      maxzoom:22,paint:{
+      // baseline floor (0.12) => low/no-demand stops still glow BLUE; demand -> 1
+      'heatmap-weight':['+',0.12,['*',0.88,['get','v']]],
+      'heatmap-intensity':['interpolate',['linear'],['zoom'],10,1,14,1.4,18,1.8],
+      'heatmap-radius':['interpolate',['linear'],['zoom'],
+        10,16, 12,24, 14,42, 16,75, 18,130, 20,220],
+      'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+        0.00,'rgba(0,0,255,0)',
+        0.15,'rgba(70,130,210,0.45)',
+        0.35,'rgba(90,170,220,0.6)',
+        0.55,'rgba(0,210,200,0.7)',
+        0.70,'rgba(120,220,90,0.8)',
+        0.85,'rgba(255,215,0,0.9)',
+        1.00,'rgba(255,60,0,0.95)'],
+      'heatmap-opacity':0.75}});
+  }
+
+  map.addSource('buses',{type:'geojson',data:frameToGeoJSON(DATA.frames[frameIdx])});
+  // register a solid white rectangle as an SDF image so it can be tinted per line
+  if(!map.hasImage('busrect')){
+    const w=22,h=14,d=new Uint8Array(w*h*4);
+    for(let i=0;i<w*h;i++){d[i*4]=255;d[i*4+1]=255;d[i*4+2]=255;d[i*4+3]=255;}
+    map.addImage('busrect',{width:w,height:h,data:d},{sdf:true});
+  }
+  map.addLayer({id:'buses',type:'symbol',source:'buses',layout:{
+    'icon-image':'busrect','icon-size':1,
+    'icon-allow-overlap':true,'icon-ignore-placement':true},
+    paint:{'icon-color':['get','color'],
+      'icon-halo-color':'#fff','icon-halo-width':1.2}});
+  map.addLayer({id:'bus-labels',type:'symbol',source:'buses',layout:{
+    'text-field':['get','line'],
+    'text-font':['Noto Sans Regular'],
+    'text-size':11,'text-allow-overlap':true,'text-ignore-placement':true},
+    paint:{'text-color':'#fff','text-halo-color':'#000','text-halo-width':1}});
+  render();
+  playing=true;                       // auto-start
+  document.getElementById('play').textContent='⏸ Pause';
+  requestAnimationFrame(tick);
+});
+
+document.getElementById('play').onclick=e=>{
+  playing=!playing; lastTs=0;
+  e.target.textContent=playing?'⏸ Pause':'▶ Play';
+};
+document.getElementById('speed').onchange=e=>{speedMult=+e.target.value;lastTs=0;};
+document.getElementById('seek').oninput=e=>{frameIdx=+e.target.value;render();};
+</script>
+</body>
+</html>

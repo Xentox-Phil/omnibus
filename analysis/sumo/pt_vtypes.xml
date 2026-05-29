@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2026-05-29 23:45:18.582351 by Eclipse SUMO gtfs2pt.py v1.27.0
+<configuration>
+    <gtfs value="gtfs.zip"/>
+    <date value="20250801"/>
+    <modes value="bus"/>
+    <vtype-output value="pt_vtypes.xml"/>
+    <network value="regensburg.net.xml"/>
+    <route-output value="gtfs_pt_vehicles.add.xml"/>
+    <additional-output value="gtfs_pt_stops.add.xml"/>
+</configuration>
+-->
+
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+    <vType id="bus" vClass="bus"/>
+</additional>

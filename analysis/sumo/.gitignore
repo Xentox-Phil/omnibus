@@ -1,0 +1,24 @@
+# Python / uv environment (machine-specific, recreated by `uv run`)
+.venv/
+__pycache__/
+*.pyc
+
+# Big regenerable intermediates (NEVER push — GitHub rejects >100 MB)
+# sim.fcd.xml ~600 MB raw per-second positions; rebuilt by sumo
+sim.fcd.xml
+# regensburg_bbox.osm.xml 73 MB raw OSM extract; re-fetch from Overpass
+regensburg_bbox.osm.xml
+
+# SUMO run outputs + logs (regenerable)
+out_summary.xml
+out_stops.xml
+out_tripinfo.xml
+*.log
+
+# gtfs2pt intermediates (regenerated each run)
+input/
+resources/
+fcd/
+
+# backup of the previous feed (not needed by colleagues)
+gtfs_base_backup.zip

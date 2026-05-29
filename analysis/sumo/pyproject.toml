@@ -1,0 +1,18 @@
+[project]
+# Standalone project so this folder runs on its own (USB stick / any machine),
+# independent of the parent omnibus-analysis project.
+name = "regensburg-sumo-viewer"
+version = "0.1.0"
+description = "Regensburg RVV bus SUMO scenario + browser demand viewer"
+requires-python = ">=3.11"
+dependencies = [
+    "eclipse-sumo>=1.27.0",
+    "sumolib>=1.27.0",
+    "traci>=1.27.0",
+    "rtree>=1.4.1",   # required by gtfs2pt.py
+    "pyproj>=3.7.2",  # required by gtfs2pt.py
+    "pandas>=2.0",    # required by gtfs2pt.py
+]
+
+[tool.uv]
+package = false
