@@ -186,6 +186,8 @@ windows = df.filter(pl.col("source_window") != "Daten_Linie_1_2024-09_2025-08") 
 | `fetch_gtfs.py` | RVV stop coordinates (join names → lat/lon) | committed snapshot `data/raw/gtfs/regensburg_stops.parquet` + RVV window parquets | `stops_geo.parquet` (~300 stops, gitignored, derived). `--refresh-raw` re-downloads the 245 MB GTFS zip + rebuilds the snapshot. Details in [`docs/GTFS.md`](./docs/GTFS.md). |
 | `fetch_routes_osm.py` | Per-line bus polylines from OpenStreetMap | Overpass API (cached at `data/raw/osm/bus_routes.json`) | `routes_osm.parquet` (~724 OSM relations, 94 line refs, GeoJSON LineString per row). See [`docs/SCHEDULE.md`](./docs/SCHEDULE.md). |
 | `fetch_schedule.py` | Unified backend dataset: GTFS schedule + GTFS-validated OSM geometry | RVV GTFS July feed + `routes_osm.parquet` + `stops_geo.parquet` | `lines.parquet`, `stop_times.parquet`, `service_days.parquet`. 4-stage validation gate — every kept (line, dir) is double-confirmed by GTFS & OSM. Full methodology + quality numbers in [`docs/SCHEDULE.md`](./docs/SCHEDULE.md). |
+| `flex_recommend.py` | Directional stop pressure → terminal-only flex-bus recommendations + scenario GTFS | `features.parquet` + optional pressure JSON | `data/scenarios/<id>/{recommendations.json,scenario_gtfs.zip}`. Details in [`docs/FLEX_RECOMMENDATION_ENGINE.md`](./docs/FLEX_RECOMMENDATION_ENGINE.md). |
+| `serve_flex_scenarios.py` | Read-only local API for generated flex scenarios | `data/scenarios/<id>/` | `GET /api/scenarios`, `/recommendations.json`, `/gtfs.zip` for the simulation UI. |
 
 ```bash
 uv run python pipeline/fetch_weather.py             # --force to refetch
@@ -195,6 +197,8 @@ uv run python pipeline/fetch_gtfs.py                # needs ingest; stop_code→
 uv run python pipeline/fetch_gtfs.py --compare      # old gtfs.de vs new coverage
 uv run python pipeline/ingest.py                    # --file <name> for one file
 uv run python pipeline/ingest_external_csvs.py      # events + strikes CSVs → parquet
+uv run python pipeline/flex_recommend.py --force    # demo flex recommendations + scenario GTFS
+uv run python pipeline/serve_flex_scenarios.py      # serve generated scenarios to UI/SUMO layer
 ```
 
 Fetchers are idempotent (skip if output exists; `--force` to refetch). GTFS
