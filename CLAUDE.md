@@ -2,32 +2,15 @@
 
 Hackaburg 2026 project. Public transit optimization for **RVV** (Regensburg).
 
-## What we're building
+See [`BRIEF.md`](./BRIEF.md) for the challenge prompt, sponsor wishes, and judging criteria (Technical Difficulty, Innovation, Impact, UI/UX, Presentation).
 
-Two products on the same dataset:
+> **Scope note:** The `drone/` directory is an **unrelated side project**. Do **not** propose drone/hardware tie-ins for Omnibus.
 
-1. **Daytime fleet optimizer** — weather + event-aware bus type & count allocation per line per hour. Predicts delays.
-2. **Night on-demand ride** — after ~20:00, scheduled service replaced by bookable pooled rides. Mobile app + station kiosk for booking.
+## Repo layout
 
-Full plan, role split (5 people), ML model specs, demo script → see [`PLAN.md`](./PLAN.md).
-
-## Repo layout (target)
-
-```
-data/                  # parquet, stops, weather (gitignored if big)
-services/
-  ml/                  # delay + demand models, /eta endpoint
-  optimizer/           # PuLP fleet allocator, /allocation endpoint
-  dispatch/            # night booking, matching, vehicle sim, WS
-apps/
-  operator/            # Next.js — fleet-allocation dashboard
-  kiosk/               # Next.js — station touch UI
-  mobile/              # Expo — rider app
-Hackaburg_2026/        # raw CSV dataset from RVV (DO NOT commit, large)
-docs/
-PLAN.md                # full plan + role split + ML spec
-CLAUDE.md              # this file
-```
+- `analysis/` — Python data pipeline (uv-managed, `pyproject.toml` + `uv.lock`). All data lives here: `analysis/pipeline/`, `analysis/data/` (raw + parquet — **gitignored**, regenerable), `analysis/docs/`. Run scripts from inside `analysis/` via `uv run python pipeline/<script>.py`. See [`analysis/README.md`](./analysis/README.md).
+- `frontend/` — web app.
+- `drone/` — unrelated side project (ignore).
 
 ## Dataset quirks (read before touching CSVs)
 
@@ -35,37 +18,9 @@ CLAUDE.md              # this file
 - **Delimiter:** comma, but with quoted fields — standard CSV.
 - **Columns are German.** See bottom of this file for the canonical translation.
 - **Some columns are empty** in the header (positions 10, 12, 14, 17, 19 carry sub-values like "Hauptbahnhof" — second name for same stop, etc.). Don't drop them blindly; inspect.
-- **Date format:** `DD.MM.YYYY HH:MM:SS` (German). Parse with `format="%d.%m.%Y %H:%M:%S"`.
 - **No passenger counts.** APC data exists at RVV but was not shared. We infer demand from dwell time (see `PLAN.md` Person 2 → Model B).
 - **No weather columns.** Join externally via Open-Meteo or DWD station Regensburg (03379).
-- **Files in `Hackaburg_2026/`:**
-  - `06.10.2024_19.10.2024_ITCS.csv` — baseline 2-week sample (univ + OTH mixed)
-  - `08.10.2023_21.10.2023_ITCS.csv` — same period 2023 (baseline year-over-year)
-  - `15.12.2024_25.12.2024_ITCS_Christkindlmarkt2024.csv` — Christmas market event
-  - `23.04.2025_09.05.2025_ITCS_nur_UniLinien.csv` — university lines only (2, 4, 6, 11, C1/C2/C4/C6, X4)
-  - `26.05.2024_07.06.2024_ITCS_Hochwasser.csv` — June 2024 flood (peak 02.06.24, Meldestufe 4, 5.5m)
-  - `Daten Linie 1_2026-05-20_152040.zip` — full year 2025 for Line 1 only
-
-## Conventions
-
-- **Language:** code English, comments English. UI strings German (Regensburg users).
-- **stop_id** is the canonical stop reference everywhere. Defined in `data/stops.csv` (Person 1 ships hour 1).
-- **Timestamps:** ISO 8601 UTC in APIs, German local in raw data — convert at the parquet boundary.
-- **Money/CO2 numbers** in the optimizer are made-up plausibles, not audited. Don't claim otherwise externally.
-- **Backend services** are all FastAPI on different ports during dev; one shared `docker-compose.yml` for the demo.
-- **Frontends** call backend via TanStack Query.
-
-## Running things
-
-Specifics TBD per service (will be added to each service's README as it's built). General pattern:
-
-```bash
-# ML / optimizer / dispatch services (Python)
-cd services/<name> && uv sync && uv run uvicorn main:app --reload --port <port>
-
-# Frontend apps
-cd apps/<name> && pnpm install && pnpm dev
-```
+- **Dataset inventory + where to drop raw files:** [`analysis/data/README.md`](./analysis/data/README.md) — single source for what each RVV window is, exact filenames, and folder layout.
 
 ## German → English column map
 
@@ -100,15 +55,25 @@ cd apps/<name> && pnpm install && pnpm dev
 
 ## External data sources
 
-- **Weather:** Open-Meteo historical & forecast (https://open-meteo.com — no key, free) for Regensburg (`lat=49.013, lng=12.101`). Fallback: DWD station 03379.
-- **GTFS / stop coordinates:** RVV GTFS feed (search "RVV Regensburg GTFS" via gtfs.de, transit.land, or RVV open data portal). **Required hour 1** — blocks dispatch + frontend.
-- **Routing:** OSRM (public demo `https://router.project-osrm.org` for dev, local Docker with Regensburg .osm.pbf extract for demo reliability).
-- **Bavarian school holidays:** for `school_holiday` feature in delay model. Static CSV is fine.
+Fetchers under `analysis/pipeline/fetch_*.py` write to `analysis/data/parquet/`. All are idempotent (skip if output exists; `--force` to refetch). Details — APIs used, naming quirks, manual fallbacks — in [`analysis/docs/EXTERNAL_DATA.md`](./analysis/docs/EXTERNAL_DATA.md).
 
-## Don'ts
+- **Weather + daylight** (Open-Meteo) → `weather_regensburg.parquet` (hourly) + `daylight_regensburg.parquet` (daily sunrise/sunset/daylight_hours)
+- **Bavarian public + school holidays** (Open-Holidays-API) → `holidays_bavaria.parquet`
+- **OTH + UR semester calendars** → `university_calendar.parquet` (needs holidays parquet built first)
+- **Regensburg events** (manual CSV in `data/raw/`, per-row source URLs) → `events_regensburg.parquet`. Methodology + sources in [`analysis/docs/EVENTS.md`](./analysis/docs/EVENTS.md).
+- **RVV-relevant strikes** (manual CSV) → `strikes_rvv.parquet`. **Null finding:** no ver.di bus driver strikes hit RVV in 2024/25 (Bayern in Friedenspflicht). Methodology in [`analysis/docs/STRIKES.md`](./analysis/docs/STRIKES.md).
+- **GTFS / stop coordinates:** RVV GTFS feed — **required hour 1**, blocks dispatch + frontend. Search "RVV Regensburg GTFS" via gtfs.de, transit.land, or RVV open data portal.
+- **Routing:** OSRM (public demo for dev, local Docker w/ Regensburg `.osm.pbf` for demo reliability).
 
-- Don't commit the raw `Hackaburg_2026/*.csv` files — they're huge, gitignored.
-- Don't claim demand is real passenger count — always say "dwell-based demand proxy".
-- Don't trust public OSRM under demo load — local Docker for the actual presentation.
-- Don't use `event_tag` as an inference-time feature without explicitly setting it (it's known in training, ambiguous in production).
-- Don't add APC integration paths — RVV won't share APC; document the proxy approach.
+## Parquet outputs (`analysis/data/parquet/`)
+
+> Gitignored + regenerable — layout, commit status, and rebuild steps in [`analysis/data/README.md`](./analysis/data/README.md).
+
+- `<event-window>.parquet` — one per RVV CSV (see `analysis/pipeline/ingest.py`).
+- `Daten_Linie_1_2024-09_2025-08.parquet` — Line 1 full year (melted monthly CSVs, pivoted).
+- `weather_regensburg.parquet` — hourly weather, 2023-01-01 → recent.
+- `daylight_regensburg.parquet` — daily sunrise / sunset / daylight_hours, same range as weather.
+- `holidays_bavaria.parquet` — daily public + school holidays for Bavaria, 2023–2026.
+- `university_calendar.parquet` — daily `in_session` flag per institution (`oth`, `ur`), 2023-03 → 2026-07.
+- `events_regensburg.parquet` — 345 day-rows of confirmed Regensburg events (Jahn, Eisbären, Dult, Christkindlmarkt, Schlossfestspiele, Marathon, Bürgerfest), 2024–2026, each row sourced.
+- `strikes_rvv.parquet` — 3 day-rows of TVöD/TV-V Stadtwerke strikes 2025; bus-driver impact `unknown` (Bayern was in Friedenspflicht throughout, no ÖPNV strikes).

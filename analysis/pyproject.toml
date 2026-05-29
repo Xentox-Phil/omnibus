@@ -1,0 +1,12 @@
+[project]
+name = "omnibus-analysis"
+version = "0.1.0"
+description = "RVV transit data pipeline for Hackaburg 2026 Omnibus project"
+requires-python = ">=3.11"
+dependencies = [
+    "polars==1.41.1",
+    "pyarrow>=18",
+]
+
+[tool.uv]
+package = false

@@ -1,1 +1,41 @@
-docs/Hackaburg_2026/
+# --- Analysis data (root rule) ---
+# Raw RVV CSVs aren't redistributable; .ics + external API fetches re-fetchable;
+# built parquet regenerable via `uv run python pipeline/...`.
+# Layout + how to rebuild: analysis/data/README.md
+analysis/data/**
+# ...but keep folder skeleton + README so teammates see the layout:
+!analysis/data/
+!analysis/data/**/
+!analysis/data/**/README.md
+!analysis/data/**/.gitkeep
+# ...and keep MANUAL research output (NOT regenerable — written by research
+# agents with per-row source URLs; see analysis/docs/EVENTS.md, STRIKES.md):
+!analysis/data/raw/events_regensburg_2024_2025.csv
+!analysis/data/raw/strikes_rvv_2024_2025.csv
+# ...and keep OTH semester .ics (tiny text; re-fetchable but OTH pulls old
+# semesters — fetch_university_calendar.py needs them as a stable fallback):
+!analysis/data/raw/oth_ics/*.ics
+
+# --- Python ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Secrets ---
+.env
+.env.local
+.env.*.local
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
