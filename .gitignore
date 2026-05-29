@@ -15,6 +15,11 @@ analysis/data/**
 # ...and keep OTH semester .ics (tiny text; re-fetchable but OTH pulls old
 # semesters — fetch_university_calendar.py needs them as a stable fallback):
 !analysis/data/raw/oth_ics/*.ics
+# ...and keep the committed GTFS snapshot (~86 KB; bbox-filtered extract of the
+# 245 MB gtfs.de Germany feed — saves teammates the re-download. See
+# analysis/docs/GTFS.md). stops_geo.parquet is derived from this + the RVV
+# window parquets, so it stays gitignored like every other data/parquet/ output.
+!analysis/data/raw/gtfs/regensburg_stops.parquet
 
 # --- Python ---
 .venv/
@@ -26,6 +31,12 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
+
+# --- Jupyter ---
+# Notebooks themselves stay tracked (committed with outputs — see analysis/README.md).
+# Ignore the auto-saved checkpoints JupyterLab drops next to every open notebook.
+.ipynb_checkpoints/
+*-checkpoint.ipynb
 
 # --- Secrets ---
 .env

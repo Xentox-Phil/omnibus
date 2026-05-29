@@ -17,9 +17,18 @@ analysis/data/
 │   │   └── Daten Linie 1/     # UNZIP "Daten Linie 1_….zip" into this folder (12 monthly CSVs)
 │   │       └── SQ-S02 Linie 1 2024-09-01 bis 2024-09-30.csv  (… through 2025-08)
 │   ├── oth_ics/              # OTH semester calendars (.ics) — COMMITTED (fragile upstream)
-│   └── events_regensburg_2024_2025.csv
+│   ├── events_regensburg_2024_2025.csv  # COMMITTED — manually researched, per-row source URLs
+│   ├── strikes_rvv_2024_2025.csv        # COMMITTED — same pattern
+│   └── gtfs/
+│       └── regensburg_stops.parquet     # COMMITTED — bbox extract of the 245 MB gtfs.de feed
 └── parquet/                  # BUILT — do not hand-edit, regenerate from pipeline
 ```
+
+> Why some files in `raw/` are committed: they're either **manually curated**
+> (events, strikes — per-row source URLs we don't want to re-research) or
+> **bbox-filtered snapshots of upstream sources** too large to re-fetch on every
+> clone (GTFS — 245 MB → 86 KB; see [`docs/GTFS.md`](../docs/GTFS.md)). Everything
+> in `parquet/` is gitignored and regenerable from `raw/`.
 
 ## Dropping in RVV data (must match exactly)
 

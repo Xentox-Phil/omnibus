@@ -36,6 +36,7 @@ CONTEXT_FILES = {
     "university_calendar.parquet",
     "events_regensburg.parquet",
     "strikes_rvv.parquet",
+    "stops_geo.parquet",
     "features.parquet",
 }
 
@@ -118,6 +119,14 @@ def strikes_ctx() -> pl.DataFrame:
     ).rename({"date": "operating_day"})
 
 
+def stops_geo_ctx() -> pl.DataFrame | None:
+    """RVV stop_name -> lat/lon from GTFS. Optional — skip cleanly if not built."""
+    p = OUT_DIR / "stops_geo.parquet"
+    if not p.exists():
+        return None
+    return pl.read_parquet(p).select("stop_name", "stop_lat", "stop_lon")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="rebuild even if features.parquet exists")
@@ -136,6 +145,12 @@ def main() -> None:
     lf = lf.join(weather_ctx().lazy(), on="_hour_key", how="left")
     for ctx in (daylight_ctx, holidays_ctx, university_ctx, events_ctx, strikes_ctx):
         lf = lf.join(ctx().lazy(), on="operating_day", how="left")
+
+    geo = stops_geo_ctx()
+    if geo is None:
+        print("  (no stops_geo.parquet — features will lack stop_lat/stop_lon. Run fetch_gtfs.py.)")
+    else:
+        lf = lf.join(geo.lazy(), on="stop_name", how="left")
     # Fill the existence flags that are null where no event/strike that day.
     lf = lf.with_columns(
         pl.col("has_event").fill_null(False),

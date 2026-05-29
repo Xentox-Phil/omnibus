@@ -12,6 +12,7 @@ Dependency order:
     fetch_holidays         Open-Holidays       -> holidays_bavaria
     fetch_university_cal.   OTH/UR + holidays   -> university_calendar     (needs holidays)
     ingest_external_csvs   manual events/strikes-> events + strikes        (soft-skip if no raw)
+    fetch_gtfs             gtfs.de + ingest    -> stops_regensburg + stops_geo (needs ingest)
     assemble               all of the above    -> features.parquet         (needs everything)
 
 Usage:
@@ -81,10 +82,13 @@ STAGES: list[Stage] = [
     Stage("ingest_external_csvs", "ingest_external_csvs.py",
           lambda: [PARQUET / "events_regensburg.parquet", PARQUET / "strikes_rvv.parquet"],
           soft_skip=external_missing_raw),
+    Stage("fetch_gtfs", "fetch_gtfs.py",
+          lambda: [PARQUET / "stops_geo.parquet"],
+          deps=["ingest"]),
     Stage("assemble", "assemble.py",
           lambda: [PARQUET / "features.parquet"],
           deps=["ingest", "fetch_weather", "fetch_holidays",
-                "fetch_university_calendar", "ingest_external_csvs"]),
+                "fetch_university_calendar", "ingest_external_csvs", "fetch_gtfs"]),
 ]
 
 

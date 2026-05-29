@@ -110,6 +110,7 @@ base, then LEFT-joins the external context so no row multiplies:
 | university | `operating_day` | `oth_in_session`, `ur_in_session` |
 | events | `operating_day` | `has_event`, `event_count`, `event_attendance_sum/max`, `event_names`, `event_types` |
 | strikes | `operating_day` | `strike_any`, `strike_scope` |
+| stops_geo (GTFS) | `stop_name` | `stop_lat`, `stop_lon` (~95.5% non-null — misses + source in [`docs/GTFS.md`](./docs/GTFS.md)) |
 
 Boolean flags (`has_event`, `is_*_holiday`, `strike_any`) are filled `False` on
 days with no match, so they're never null.
@@ -163,16 +164,92 @@ windows = df.filter(pl.col("source_window") != "Daten_Linie_1_2024-09_2025-08") 
 | `fetch_weather.py` | Hourly weather (Open-Meteo) | — (API) | `weather_regensburg.parquet` |
 | `fetch_holidays.py` | Bavaria public + school holidays | — (API) | `holidays_bavaria.parquet` |
 | `fetch_university_calendar.py` | OTH/UR term calendars | API + holidays parquet | `university_calendar.parquet` |
+| `fetch_gtfs.py` | RVV stop coordinates (join names → lat/lon) | committed snapshot `data/raw/gtfs/regensburg_stops.parquet` + RVV window parquets | `stops_geo.parquet` (~300 stops, gitignored, derived). `--refresh-raw` re-downloads the 245 MB GTFS zip + rebuilds the snapshot. Details in [`docs/GTFS.md`](./docs/GTFS.md). |
 
 ```bash
 uv run python pipeline/fetch_weather.py             # --force to refetch
 uv run python pipeline/fetch_holidays.py
 uv run python pipeline/fetch_university_calendar.py # needs holidays parquet first
+uv run python pipeline/fetch_gtfs.py                # needs ingest; reads committed raw snapshot (<1s)
+uv run python pipeline/fetch_gtfs.py --refresh-raw  # re-download 245 MB zip + rebuild the snapshot
 uv run python pipeline/ingest.py                    # --file <name> for one file
 uv run python pipeline/ingest_external_csvs.py      # events + strikes CSVs → parquet
 ```
 
-Fetchers are idempotent (skip if output exists; `--force` to refetch).
+Fetchers are idempotent (skip if output exists; `--force` to refetch). For
+GTFS, the bbox-filtered raw snapshot is **committed** at
+`data/raw/gtfs/regensburg_stops.parquet` (~86 KB) so a fresh clone gets stop
+coordinates without the 245 MB download. The derived `stops_geo.parquet` is
+gitignored like every other `data/parquet/` output.
+
+## Notebooks (`notebooks/`)
+
+Exploratory analysis lives in Jupyter notebooks. Source of truth: the `.ipynb`
+files, committed **code-only** — outputs are stripped at commit time by
+[`nbstripout`](https://github.com/kynan/nbstripout) (see *Notebook git setup*
+below). You keep all your charts locally; git only ever sees the code, so diffs
+stay small and merges don't conflict on rendered images.
+
+```bash
+uv sync                                  # picks up the dev group (jupyterlab, matplotlib, folium)
+uv run jupyter lab                       # opens at http://localhost:8888, browse to notebooks/
+```
+
+Pick an existing notebook or copy one as a starting point. They expect
+`data/parquet/features.parquet` to exist — run `pipeline/run.py` first if it
+doesn't.
+
+| Notebook | What's in it |
+| --- | --- |
+| `01_first_insights.ipynb` | Quick tour of `features.parquet` — most unreliable lines, flood-week timeline, Christmas-market vs baseline by hour, precip-vs-delay buckets. Encodes the two key data caveats (Line-1 overlap, midnight-wrap) in the first two cells. |
+| `02_deeper_dive.ipynb` | 8 questions: variance propagation, YoY degradation, DOW×hour heatmap, (line, stop) hotspots, weather buckets, event-type ranking, schedule-padding waste, per-vehicle-block σ. |
+| `03_geo_insights.ipynb` | Map-based views (uses `stop_lat`/`stop_lon` from GTFS): city σ map with hotspot labels, distance-from-HBF vs σ, flood-week per-stop delta map, Klinikum corridor breakdown, single-trip delay trace on the map. *Static matplotlib.* |
+| `04_interactive_map.ipynb` | **Interactive Leaflet (folium).** Pan/zoom/click explorer of all 268 well-sampled geocoded stops (σ-colored, popups with median/p90/σ/lines/n), toggleable σ-heat layer + distance rings from HBF, plus a per-line route view (change `LINE`) coloring each stop by its σ on that line. |
+| `05_temporal_replay.ipynb` | **Interactive Leaflet (folium).** Time on the map: animated flood-week heat (`HeatMapWithTime`, one frame per day, 2024-05-26→06-07) and a single-trip replay (`AntPath` + per-stop delay dots) of the worst trip on a chosen line. |
+| `06_marey_bunching.ipynb` | Operational views: a **Marey time–distance diagram** (one diagonal per bus, color = delay; bunching/dwell/slack visible at a glance) and **headway regularity** at a busy stop — headway CoV computed *per hour* (the schedule's own frequency changes confound a whole-day CoV). Finds AM-peak bunching (CoV ≈0.6) vs near-perfect evening adherence (≈0.03). |
+| `07_dwell_demand.ipynb` | **Model B — dwell as a demand proxy** (RVV shared no passenger counts). Strips terminus layovers + timing-point holds, then maps median boarding-dwell per stop (folium) and a **crowded-slow vs traffic-slow** quadrant scatter that splits congestion (high dwell) from corridor delay (low dwell). Top demand: HBF, Universität, Arnulfsplatz. |
+| `08_calendar_year.ipynb` | The **only full year** (Line 1, used standalone so no overlap): a GitHub-style calendar heatmap of daily median delay with holidays/events marked, plus a weekly trend with school-holiday weeks shaded. School holidays correlate −0.31 with delay (calmer). |
+
+**Two caveats to bake into every analysis cell** (also in
+[`docs/DATA_DEFECTS.md`](./docs/DATA_DEFECTS.md)):
+
+1. Drop `Daten_Linie_1_2024-09_2025-08` before slicing by date — it overlaps
+   every event window.
+2. Filter `|delay_arr_s| < 7200` (§9 midnight-wrap outliers).
+
+### Notebook git setup (one-time, per clone)
+
+We strip notebook outputs on commit so the repo stays small and merge-friendly.
+This is the standard approach most teams use for notebooks in git. It runs as a
+git **clean filter**: outputs are removed from what git stores, but your working
+copy keeps them — you never see a difference while working.
+
+After cloning + `uv sync`, run once:
+
+```bash
+uv run nbstripout --install --attributes .gitattributes
+```
+
+That writes the filter into *your* local `.git/config` (machine-specific path,
+not committed). The shared `.gitattributes` (`*.ipynb filter=nbstripout`) is
+committed, so everyone uses the same rule once they've run the install.
+
+Check it's active:
+
+```bash
+git config --get filter.nbstripout.clean    # should print a python -m nbstripout path
+uv run nbstripout -t notebooks/01_first_insights.ipynb | wc -c   # ~12 KB (stripped), file on disk unchanged
+```
+
+**If you skip this step**, your commits will include full outputs (big diffs,
+likely merge conflicts) — so don't skip it.
+
+### Editing & re-running a notebook
+
+Edit cells in JupyterLab and re-run top-to-bottom (`Kernel → Restart & Run All`)
+as you like. You don't need to clear outputs by hand before committing — the
+filter strips them automatically, so the committed `.ipynb` is always code-only
+regardless of what's rendered locally.
 
 ## Raw RVV data (not in git)
 
