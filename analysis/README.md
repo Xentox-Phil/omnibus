@@ -165,6 +165,8 @@ windows = df.filter(pl.col("source_window") != "Daten_Linie_1_2024-09_2025-08") 
 | `fetch_holidays.py` | Bavaria public + school holidays | — (API) | `holidays_bavaria.parquet` |
 | `fetch_university_calendar.py` | OTH/UR term calendars | API + holidays parquet | `university_calendar.parquet` |
 | `fetch_gtfs.py` | RVV stop coordinates (join names → lat/lon) | committed snapshot `data/raw/gtfs/regensburg_stops.parquet` + RVV window parquets | `stops_geo.parquet` (~300 stops, gitignored, derived). `--refresh-raw` re-downloads the 245 MB GTFS zip + rebuilds the snapshot. Details in [`docs/GTFS.md`](./docs/GTFS.md). |
+| `flex_recommend.py` | Directional stop pressure → terminal-only flex-bus recommendations + scenario GTFS | `features.parquet` + optional pressure JSON | `data/scenarios/<id>/{recommendations.json,scenario_gtfs.zip}`. Details in [`docs/FLEX_RECOMMENDATION_ENGINE.md`](./docs/FLEX_RECOMMENDATION_ENGINE.md). |
+| `serve_flex_scenarios.py` | Read-only local API for generated flex scenarios | `data/scenarios/<id>/` | `GET /api/scenarios`, `/recommendations.json`, `/gtfs.zip` for the simulation UI. |
 
 ```bash
 uv run python pipeline/fetch_weather.py             # --force to refetch
@@ -174,6 +176,8 @@ uv run python pipeline/fetch_gtfs.py                # needs ingest; reads commit
 uv run python pipeline/fetch_gtfs.py --refresh-raw  # re-download 245 MB zip + rebuild the snapshot
 uv run python pipeline/ingest.py                    # --file <name> for one file
 uv run python pipeline/ingest_external_csvs.py      # events + strikes CSVs → parquet
+uv run python pipeline/flex_recommend.py --force    # demo flex recommendations + scenario GTFS
+uv run python pipeline/serve_flex_scenarios.py      # serve generated scenarios to UI/SUMO layer
 ```
 
 Fetchers are idempotent (skip if output exists; `--force` to refetch). For
