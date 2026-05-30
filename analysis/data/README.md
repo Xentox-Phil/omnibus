@@ -29,9 +29,10 @@ analysis/data/
 │   │       └── SQ-S02 Linie 1 2024-09-01 bis 2024-09-30.csv  (… through 2025-08)
 │   ├── gtfs_july2025/ · gtfs_aug2025/   # full GTFS feeds (unzipped) — gitignored, re-fetchable, not yet used by pipeline
 │   ├── oth_ics/              # OTH semester calendars (.ics) — COMMITTED (fragile upstream)
-│   ├── events_regensburg_2024_2025.csv  # COMMITTED — manually researched, per-row source URLs
-│   ├── strikes_rvv_2024_2025.csv        # COMMITTED — same pattern
-│   ├── betriebskalender_events.csv      # COMMITTED — 98 rows hand-pulled from the SMO PDFs (docs/BETRIEBSKALENDER.md)
+│   ├── crawled/             # hand/agent-researched CSVs (per-row source URLs) — all COMMITTED
+│   │   ├── events_regensburg_2024_2025.csv  # manually researched events
+│   │   ├── strikes_rvv_2024_2025.csv        # manually researched strikes
+│   │   └── betriebskalender_events.csv      # 98 rows hand-pulled from the SMO PDFs (docs/BETRIEBSKALENDER.md)
 │   ├── *_SMO_Betriebskalender.pdf · Linien_Erklärung.pdf   # RVV docs — gitignored (treat as not-redistributable)
 │   ├── Haltestellen und -punkte - Haltestelle.csv          # RVV stop master — gitignored
 │   ├── Population_Regensburg_2023/      # city census shapefiles — gitignored (license unverified)

@@ -1,0 +1,13 @@
+[
+  {
+    "event_id": "jahn_demo_2025-07-28",
+    "event_label": "Jahn Matchday (demo)",
+    "event_type": "sport_football",
+    "start": "2025-07-28T18:00:00+02:00",
+    "end": "2025-07-28T20:00:00+02:00",
+    "event_stop": "JAHN",
+    "origins": [
+      { "stop": "HBF", "multiplier": 1.0 }
+    ]
+  }
+]

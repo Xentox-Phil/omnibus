@@ -1,111 +1,116 @@
-# Omnibus — Plan
+# Omnibus — Plan (demand / flex-bus)
 
-> **Frame:** RVV's data is about **buses and the city**, not passengers (no APC). Drop every angle that fakes demand from dwell time. Pitch: *"6 million km of moving sensors. What do they know about Regensburg?"*
+> **Pitch:** *"Every RVV bus is already a demand sensor. We mine a year of dwell-time
+> telemetry into a day-ahead demand surface for Regensburg, then schedule on-demand
+> flex buses to the recurring pulses — and the event spikes — the fixed timetable
+> misses. Same fleet, smarter where-and-when."*
 
-One ingest pipeline + GTFS-snapped delay table → three scenes, one product.
+> **Pivot history:** This is the active direction. Earlier iterations under
+> [`ideas/_archive/`](./ideas/_archive/):
+> 1. `reroute-v1.md` — original three-scene analytical story. Discarded.
+> 2. `demand-twin.md` — first demand digital-twin sketch. **This plan is its descendant**, advanced into a concrete day-ahead model + scheduler.
+> 3. `reroute-v2.md` — reroute-on-closure with Valhalla. Built a backend scaffold, then set aside; kept as a possible B-plan.
+>
+> The `analysis/` data pipeline is shared across all iterations; nothing in there is wasted.
+
+---
+
+## The problem
+
+RVV runs a fixed timetable sized for the morning peak. Off-peak, the same fleet is
+over-served on some corridors and absent on others, and big **event egress** (Jahn home
+games, Dult, Bürgerfest) overwhelms specific stops at predictable times. Demand *moves*
+through the day; the timetable is static. Nobody at RVV can see the movement, because
+**there is no passenger-count data** (APC exists internally but wasn't shared).
+
+## The core insight (why this is technically credible)
+
+We don't need passenger counts. **Dwell time is a demand proxy we already have:**
+
+- `dwell_s = ts_departure_actual_door − ts_arrival_actual_door` → longer dwell ≈ more boarding.
+- `door_opened` filters phantom stops (doors never opened → nobody waiting).
+- Aggregated over a **full year** to `(stop × hour × day-of-week)`, noise averages into a
+  stable demand surface.
+
+Pressure unit = **boarding-dwell seconds** — a relative demand index, honest about having
+no APC.
+
+## What we're building
+
+1. **Day-ahead demand surface** — for any date, a per-stop pressure series, split into a
+   `baseline_s` (a clean "normal day") and an `event_s` bump, summed into `pressure_s`.
+2. **Event demand curves** — per event, smooth per-minute pressure curves on the affected
+   stops, directional (inbound to the venue pre-event, outbound after).
+3. **Flex-bus scheduler** (colleague) — consumes the surface, matches idle capacity to the
+   pulses, proposes on-demand routes.
+4. **Map UI** — Regensburg map + demand heatmap over time + per-event curve charts +
+   flex-route proposals.
+
+## The data engine (built)
+
+`analysis/pipeline/predict_demand.py` → two artifacts per date, both from one set of leg specs:
+
+- **`demand_<date>.json`** — node-keyed **15-min** surface, 300 stops × 96 ticks:
+  `baseline_s` (GBM, event-free) + `event_s` (kernel) = `pressure_s`, plus `pressure_norm`
+  and per-stop `events[]`. The map/scheduler contract.
+- **`demand_<date>_events.json`** — event-first **1-min** curve export: per event, one
+  directional curve per leg (`from → to`), shipped as both `pressure_s` (seconds) and
+  `pressure_norm` (0–1), windowed to its active span. The frontend curve charts.
+
+**Contract:** [`analysis/docs/DEMAND_BUCKET_SCHEMA.md`](./analysis/docs/DEMAND_BUCKET_SCHEMA.md) — lock before changing; additive only.
+
+### Two layers
+
+| layer | source | meaning |
+|---|---|---|
+| `baseline_s` | GBM (`train_demand_model.py`), trained **event-free** | normal-day demand under the date's calendar/time |
+| `event_s` | profile kernel reading `demo_events.json` + `kernel_profiles.json` | event bumps added on top |
+
+### Event kernel
+- Input feed: **`pipeline/demo_events.json`** (hardcoded demo, not the parquet). Each event
+  names a `type`, `start`/`end`, `event_stop` (venue), and `origins` each with a `multiplier`
+  (the only intensity knob — no attendance/cap math).
+- Curve library: **`pipeline/kernel_profiles.json`** maps `event_type` → smooth
+  double-logistic pulse (asymmetric rise/fall), `scale_s`, directional in/out keypoints.
+- A directional event emits, **per origin**, an inbound leg (origin→venue, peaks pre-start)
+  and an outbound leg (venue→origin, peaks post-end), linked by `event_id`.
+
+## Architecture
 
 ```
-parquet + GTFS-snapped delay table
+analysis/pipeline/
+  train_demand_model.py   ← GBM baseline (event-free), -> data/models/
+  predict_demand.py       ← surface + event curves for a date -> data/demand/
+  demo_events.json        ← hardcoded demo event feed
+  kernel_profiles.json    ← event_type -> pressure-curve library
         │
-        ├── A: per road segment → infrastructure diagnostic
-        ├── B: per (line, stop, hour) variance → reliability rec engine
-        └── C: cross-line temporal correlation → contagion DAG
+        ▼  data/demand/demand_<date>.json + demand_<date>_events.json
+backend/  (FastAPI, uv)    ← THIN dummy stub: GET /demand/{date}, /events/{date}
+        │                    (frontend can also read the static files directly)
+        ▼
+frontend/                  ← map + demand heatmap over time + per-event curves + flex proposals
 ```
 
----
+## Demo scenario
 
-## Scene A — Regensburg Pulse (city-infrastructure diagnostic)
+**Jahn matchday** (demo: 2025-07-28, kickoff 18:00). Scrub the day: baseline pulse, then
+the event blooms — inbound HBF→Jahnstadion building before kickoff, outbound Jahnstadion→HBF
+spiking after the whistle. The scheduler proposes flex buses onto those legs. Each event ships
+clean per-minute curves the UI plots directly.
 
-**One-liner:** Map of Regensburg ranked by which intersections/corridors silently destroy bus reliability.
+## What this is NOT
 
-**Compute:**
-1. For each trip, sample `(delay_arr_s, distance_cum_m)` at every stop.
-2. Diff consecutive stops → *delay added on that segment*.
-3. Snap to OSM roads via GTFS shapes + map-matching (OSRM/Valhalla trace).
-4. Aggregate over millions of trips → per-road-segment "delay productivity" with CIs.
-5. Split chronic (consistent) vs acute (event-driven).
+- Not a dispatcher / operator dashboard. (Every other team builds that.)
+- Not a passenger-counting tool — we have no APC; dwell-as-proxy is the whole point.
+- Not the reroute-on-closure app (archived B-plan, `ideas/_archive/reroute-v2.md`).
+- Not real-time live solving — flex windows are planned day-ahead, by design.
+- Not drone-related (separate project, see CLAUDE.md scope note).
 
-**Output:** ranked list addressed to the **city**, not RVV. e.g.
-*"D.-Martin-Luther-Str. between Albertstr. and Königstr. costs the network 142 bus-hours/week between 7:30–9:00. Fix: signal pre-emption for Lines 6, 11, X4."*
+## Open items
 
-**Risk:** map-matching is the time sink. Use GTFS shapes if RVV's feed includes them.
-
----
-
-## Scene B — Reliability, not Speed
-
-**One-liner:** Riders don't notice a bus always 4 min late. They notice the one that's sometimes on time and sometimes 12 min late. Optimize for **σ**, not mean.
-
-**Compute:**
-1. Per `(line, direction, stop, time-bucket)`: σ of `delay_arr_s` + 95–5 percentile spread.
-2. Rank corridors by *unreliability*.
-3. ML classifier: given a stop's variance profile, label the cause:
-   - **Upstream propagation** (variance grows monotonically from terminal)
-   - **Local bottleneck** (variance jumps at one stop, stays)
-   - **Bunching** (variance correlated with previous bus headway)
-   - **Weather-coupled** (variance explained by weather feature)
-4. Each class → different intervention (buffer reallocation, holding point, terminal smoothing).
-
-**Demo:** Line 6. Show published timetable vs real arrival distribution at 5 stops. Push "rewrite schedule" → re-simulate, gain X min of *trust* per rider per week.
-
-**UI risk:** σ is not visually punchy. Use violin / fan charts, not bars.
-
----
-
-## Scene C — How Regensburg Breaks (disruption autopsy)
-
-**One-liner:** Replay the **June 2024 flood** and the **2024 Christmas market** through the network. Show one corridor failing poisoning the rest. Identify systemically fragile lines.
-
-**Compute:**
-1. Graph: nodes = stops, edges = scheduled trips, weight = delay.
-2. Per 5-min window across flood/market weeks, compute delay field across graph.
-3. Granger-style propagation: "Line A's delay at 08:15 predicts Line B's delay at 08:25 at shared stop X" → contagion DAG.
-4. Rank by **out-degree** (breaks others) and **in-degree** (gets broken). Identify keystones.
-
-**Demo segments:**
-1. **Flood (2 June 2024)** — scrub timeline, watch inundated corridor go red, red leaks outward. Show recovery half-life.
-2. **Market (Dec 2024)** — daily 17–19h pulse, where the system absorbs vs where it doesn't.
-3. **Autopsy report** — "Line N is the keystone — when it fails, 4 lines lose >5 min/trip within 20 min. Hardening returns X bus-hours/week."
-
-**Cheap fallback** if Granger is too much: cross-correlate delay time-series between line pairs, threshold the correlations, draw the DAG. Visually identical.
-
----
-
-## Why this wins on the criteria
-
-- **Tech difficulty:** map-matching + variance ML + graph contagion = three real systems.
-- **Innovation:** nobody else will drop the passenger framing. Differentiated from the inevitable wall of dispatcher dashboards.
-- **Impact:** A and C produce *concrete recommendations* (fix this intersection, harden this corridor). B produces a metric the field actually argues for.
-- **UI/UX:** one shell, three scenes, scrubbable timelines, animated network. Story over chrome.
-- **Presentation:** clean narrative arc — *city map → line-level truth → catastrophic week*. Ends on the flood. Memorable.
-
----
-
-## What this does NOT include (deliberately)
-
-- Passenger count inference from dwell time (circular, RVV judges will see through it).
-- Operator/dispatcher console (every other team will build this).
-- Anything drone- or hardware-related (separate project, see CLAUDE.md scope note).
-
-## External data to join
-
-**Must-add:**
-- **Weather** — Open-Meteo historical, hourly. Pull `temp`, `precip`, `wind`, `visibility` for Regensburg (`lat=49.013, lng=12.101`). Required for B's weather-coupled variance class and for C's flood week to be more than a coincidence. Free, no key.
-- **Bavarian school holidays** — static CSV. Half the 2024 baseline overlaps Herbstferien (28 Oct–2 Nov 2024); without it every Tuesday-morning pattern is contaminated.
-- **University calendars (OTH + Uni Regensburg)** — semester start/end + lecture schedules, public. Turns the uni-lines dataset (23.04–09.05.2025) from "guess what's happening" into "correlate dwell spikes to actual lecture endings." Makes the uni slice the strongest sub-story.
-
-**High-value:**
-- **Event calendar** — Christmas market ✓, **Jahn Regensburg home games** (Continental Arena), **Dult** (Mai-/Herbstdult, 10-day folk festival), **Eisbären** ice hockey home games. For Scene C, a Dult or Jahn game is a cleaner "predictable surge" demo than the Christmas market (localised in time + space).
-- **OSM POIs near stops** — hospitals, schools, malls, uni buildings. *Don't* use to predict demand (passenger-count trap). Use to *explain* Scene A's outputs: "this segment is hot because Klinikum entrance is here." Justification layer only.
-
-**Skip:**
-- Road closures / construction history — perfect for Scene A but Regensburg doesn't publish cleanly. Not worth a day of hunting.
-- Mobile / Telefónica movement data — gold standard but not free, not in 2 days. Mention as "next step" in pitch.
-- Traffic counts — coverage too patchy; bus delay variance is the better signal.
-- Social media — too noisy, judges will ask.
-
-## Open decisions
-
-- Pick one scene to lead the demo with (current lean: open on **A**, deep-dive on **B**, finish on **C**).
-- Person-by-person split — not yet drafted.
-- Flood Meldestufe timeline already known: peak 02.06.24, Stufe 4, 5.5 m.
+- **Inbound peak timing** — tune in `kernel_profiles.json` if it peaks too early.
+- **`nodes_meta.json`** generator — `stop_name`/`is_hub`/`lines`/coords by `stop_code` (GTFS-owned
+  topology the demand surface joins to). Scheduler + frontend need it.
+- **Flex-bus scheduler** — consumes the surface; matches idle `vehicle_block` slack to pulses.
+- **Frontend** — map heatmap, time scrub, per-event curve charts, flex-route overlays.
+- **Backend** — currently a dummy stub; flesh out only if static files prove insufficient.

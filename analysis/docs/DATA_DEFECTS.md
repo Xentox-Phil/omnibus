@@ -97,15 +97,26 @@ columns as the preceding column's sub-value, and treat the final two trailing
 blanks as `_metric` / `_value`. Missing identity columns are added back as
 nulls so every month yields the same schema before concatenation.
 
-**Residual.** Stop identity is null for the two affected months:
+**Residual + recovery.** Stop identity was null for the two affected months:
 
-| Column | Null rows | Cause |
-| ------ | --------- | ----- |
-| `stop_code`, `stop_name` | 126,984 | Apr 2025 lacked `Haltestelle` |
-| `stop_point` | 140,981 | Oct 2024 lacked `Haltepunkt` |
+| Column | Null rows | Cause | Status |
+| ------ | --------- | ----- | ------ |
+| `stop_code`, `stop_name` | 126,984 | Apr 2025 lacked `Haltestelle` | ✅ **recovered** |
+| `stop_point` | 140,981 | Oct 2024 lacked `Haltepunkt` | ⚠️ not recoverable |
 
-Recoverable later by joining `stop_point ↔ stop_code` from the months that have
-both. Not yet done — flagged for the analysis layer.
+**Apr 2025 (`stop_code`/`stop_name`) — fixed in ingest.** `reconcile_stop_identity()`
+(`ingest.py`, called inside `_build_melted` once all 12 months are concatenated)
+recovers both: `stop_point` is `"<stop_code> (<position>)"` (e.g. `"HBF (51)"`),
+so stripping the trailing `" (NN)"` yields the `stop_code` exactly (verified 100%,
+0 mismatches), and a `stop_code → stop_name` lookup built from the months that
+carry both fills the name. All 126,984 rows recovered, 0 residual. Self-contained
+and reproducible — no external file. This lifted GTFS coordinate coverage of
+*all* stop-events from 96.48% → **99.80%** (see [`GTFS.md`](./GTFS.md)).
+
+**Oct 2024 (`stop_point`) — left null.** A `stop_code` maps to *many* `stop_point`s
+(one per position), so the position number can't be uniquely recovered from
+`stop_code`. `stop_point` isn't needed for geocoding (that keys on `stop_code`),
+so these 140,981 nulls are accepted.
 
 ---
 

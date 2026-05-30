@@ -12,7 +12,7 @@ Dependency order:
     fetch_holidays         Open-Holidays       -> holidays_bavaria
     fetch_university_cal.   OTH/UR + holidays   -> university_calendar     (needs holidays)
     ingest_external_csvs   manual events/strikes-> events + strikes        (soft-skip if no raw)
-    fetch_gtfs             gtfs.de + ingest    -> stops_regensburg + stops_geo (needs ingest)
+    fetch_gtfs             RVV stop master+GTFS -> stops_geo (stop_code→DHID→coords; needs ingest)
     assemble               all of the above    -> features.parquet         (needs everything)
 
 Usage:
@@ -54,9 +54,9 @@ def ingest_missing_raw() -> str | None:
 
 
 def external_missing_raw() -> str | None:
-    needed = [RAW / "events_regensburg_2024_2025.csv", RAW / "strikes_rvv_2024_2025.csv"]
+    needed = [RAW / "crawled" / "events_regensburg_2024_2025.csv", RAW / "crawled" / "strikes_rvv_2024_2025.csv"]
     if not all(p.exists() for p in needed):
-        return f"manual CSVs absent in {RAW}/ (events/strikes)"
+        return f"manual CSVs absent in {RAW}/crawled/ (events/strikes)"
     return None
 
 

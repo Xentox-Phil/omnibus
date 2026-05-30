@@ -1,211 +1,267 @@
-"""GTFS stop coordinates for the RVV network.
+"""GTFS stop coordinates + route descriptions for the RVV network.
 
-Two-tier architecture (mirrors the events/strikes CSV pattern):
+RVV-native pipeline. Joins our stop-event data to coordinates through RVV's own
+master data instead of fuzzy-matching names against the nationwide gtfs.de feed:
 
-  data/raw/gtfs/regensburg_stops.parquet     COMMITTED raw snapshot — ~4k GTFS
-                                              stops inside the RVV bbox
-                                              (Regensburg city + Landkreis).
-                                              Built once from the gtfs.de
-                                              Germany feed (245 MB), then kept
-                                              in-repo so teammates never have to
-                                              re-download.
+    stop_event.stop_code  →  Haltestellen master CSV (Kürzel → DHID)
+                          →  RVV GTFS stops.txt (DHID → lat/lon)
 
-  data/parquet/stops_geo.parquet             DERIVED — our ~325 RVV stop_names
-                                              joined to coordinates. Gitignored,
-                                              regenerable in <1s from the raw
-                                              snapshot + RVV window parquets.
+`stop_code` is a clean operator key (HBF, AKORN, BPLZ, …), so the join is
+deterministic — no name normalisation, no fuzzy false-positives, no 245 MB
+download. 315/324 codes carry a master DHID; the 9 that don't are depot /
+subcontractor / test markers (documented in docs/CONTACT_NOTES.md), correctly
+left without a coordinate.
 
-Default invocation: reads the committed raw snapshot, rebuilds stops_geo.
-That's the path teammates take after `git clone`.
+Inputs (all committed, tiny):
+  data/raw/Haltestellen und -punkte - Haltestelle.csv   stop master (Kürzel→DHID)
+  data/raw/gtfs_july2025/stops.txt                      RVV city feed (coords)
+  data/raw/gtfs_july2025/routes.txt                     line → route_long_name
+  data/raw/gtfs_aug2025/stops.txt                       region feed (extra coords)
 
-Refreshing the raw snapshot (only needed if RVV adds/moves stops in the GTFS
-feed — extremely rare): pass `--refresh-raw` to re-download the 245 MB zip,
-re-extract, re-filter, and overwrite `regensburg_stops.parquet`. Commit the
-result if it changes meaningfully.
+Output (gitignored, regenerable in <1s):
+  data/parquet/stops_geo.parquet    one row per stop_code: name, dhid, lat, lon, kind
 
-Source: gtfs.de Germany free aggregator → https://download.gtfs.de/germany/free/latest.zip
-Full doc: docs/GTFS.md (coverage stats, outliers, future-work checklist).
+Note: route_long_name is NOT sourced here. July's city feed leaves it empty and
+Aug's descriptions are keyed to regional line IDs that don't match our `line`
+column (only 2/47 lines join). Route descriptions live in Linien_Erklärung.pdf —
+a separate extraction (see docs/RAW_INPUTS.md).
+
+Usage:
+  uv run python pipeline/fetch_gtfs.py            # build (skip if present)
+  uv run python pipeline/fetch_gtfs.py --force    # rebuild
+  uv run python pipeline/fetch_gtfs.py --compare  # old gtfs.de vs new coverage
+
+Full doc: docs/GTFS.md. Code glossary: docs/CONTACT_NOTES.md.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
-import urllib.request
-import zipfile
 from pathlib import Path
 
 import polars as pl
 
-GTFS_URL = "https://download.gtfs.de/germany/free/latest.zip"
-
-RAW_DIR = Path("data/raw/gtfs")
-RAW_SNAPSHOT = RAW_DIR / "regensburg_stops.parquet"
-ZIP_PATH = RAW_DIR / "germany_free.zip"
-STOPS_TXT = RAW_DIR / "stops.txt"
+RAW = Path("data/raw")
+MASTER_CSV = RAW / "Haltestellen und -punkte - Haltestelle.csv"
+# Feed precedence: july is the RVV *city* feed (286 de:09362 stops). aug is
+# region-wide — used only to backfill coords july lacks. july coords win on
+# conflict.
+GTFS_FEEDS = [RAW / "gtfs_july2025", RAW / "gtfs_aug2025"]
 
 OUT_DIR = Path("data/parquet")
 OUT_GEO = OUT_DIR / "stops_geo.parquet"
 
-# Regensburg city + Landkreis bbox — wide enough for rural RVV lines.
-BBOX = {"lat_min": 48.85, "lat_max": 49.20, "lon_min": 11.85, "lon_max": 12.45}
+# Legacy gtfs.de bbox snapshot — only read by --compare now.
+OLD_SNAPSHOT = RAW / "gtfs" / "regensburg_stops.parquet"
 
-CONTEXT_FILES = {
-    "weather_regensburg.parquet", "daylight_regensburg.parquet",
-    "holidays_bavaria.parquet", "university_calendar.parquet",
-    "events_regensburg.parquet", "strikes_rvv.parquet",
-    "stops_geo.parquet", "features.parquet",
+# A stop-event window is identified by its schema (raw event timestamps + stop
+# identity), not a denylist — robust to new context tables landing alongside.
+WINDOW_SIGNATURE = {"ts_arrival_planned", "stop_code"}
+SELF_OUTPUT = {"features.parquet"}
+
+# stop_codes with no master DHID — operational, not passenger stops. Source:
+# RVV challenge contact (see docs/CONTACT_NOTES.md). kind drives the `kind`
+# column so the analysis/frontend layer can filter depots out explicitly.
+NON_STOP_KIND = {
+    "BTH SMO": "depot_rvv",     # RVV's own depot ("bus ready to be picked up")
+    "vor LSt": "depot_rvv",     # vor Leitstelle — same place as BTH SMO
+    "RBO": "depot_sub",         # Regionalbus Ostbayern (subcontractor)
+    "Wittl": "depot_sub",       # Wittl (subcontractor)
+    "SÖLL": "depot_sub",        # Söllner (subcontractor)
+    "EBEN": "depot_sub",        # Ebenbeck (subcontractor)
+    "LAS": "depot_sub",         # Laschinger (subcontractor)
+    "WAZ": "depot_sub",         # Watzinger (subcontractor)
+    "HUK": "operational",       # operator/route code, not a stop
+    "LADE": "operational",      # "Kein Zustieg" — no-boarding marker (has a DHID)
+    "TEST 1": "test", "TEST 2": "test", "TEST 3": "test", "TEST 4": "test",
+}
+
+# Real stops with a DHID that neither GTFS feed carries coords for. Hand-filled
+# from OSM (lat/lon of the RVV stop). ~2.8k events, ~0.08%. See docs/GTFS.md.
+MANUAL_COORDS = {
+    "KOEN": (49.0227, 12.1003),   # Königsstraße
+    "WITE": (49.0089, 12.0731),   # Wittelsbacherstraße
 }
 
 
-def rvv_stop_names() -> pl.DataFrame:
-    """stop_name + event count from every RVV window parquet."""
-    paths = sorted(p for p in OUT_DIR.glob("*.parquet") if p.name not in CONTEXT_FILES)
+# ---------------------------------------------------------------- inputs
+
+def rvv_stop_codes() -> pl.DataFrame:
+    """One row per stop_code from every RVV window parquet: dominant name + events."""
+    paths = []
+    for p in sorted(OUT_DIR.glob("*.parquet")):
+        if p.name in SELF_OUTPUT:
+            continue
+        if WINDOW_SIGNATURE <= set(pl.scan_parquet(p).collect_schema().names()):
+            paths.append(p)
     if not paths:
         raise SystemExit(f"no RVV window parquets in {OUT_DIR} — run ingest first.")
     df = pl.concat(
-        [pl.scan_parquet(p).select("stop_name") for p in paths],
+        [pl.scan_parquet(p).select("stop_code", "stop_name") for p in paths],
         how="diagonal_relaxed",
-    ).collect()
+    ).filter(pl.col("stop_code").is_not_null()).collect()
+    per = df.group_by("stop_code", "stop_name").len().rename({"len": "event_count"})
     return (
-        df.filter(pl.col("stop_name").is_not_null())
-        .group_by("stop_name").len()
-        .rename({"len": "event_count"})
+        per.sort("event_count", descending=True)
+        .group_by("stop_code")
+        .agg(pl.col("stop_name").first(), pl.col("event_count").sum())
     )
 
 
-def _refresh_raw_snapshot() -> pl.DataFrame:
-    """Re-download → extract → bbox-filter → overwrite the committed raw snapshot."""
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"[fetch] {GTFS_URL}  (~245 MB, one-time)")
-    urllib.request.urlretrieve(GTFS_URL, ZIP_PATH)
-    print(f"[ok] {ZIP_PATH.stat().st_size / 1e6:.0f} MB")
+def master_code_to_dhid() -> dict[str, str]:
+    """Kürzel → Globale Haltestellen-Kennung (DHID) from the RVV stop master."""
+    rows = list(csv.reader(MASTER_CSV.open(encoding="latin-1"), delimiter=";"))
+    hdr = rows[0]
+    k, g = hdr.index("Kürzel"), hdr.index("Globale Haltestellen-Kennung")
+    return {r[k].strip(): r[g].strip() for r in rows[1:] if r[k].strip() and r[g].strip()}
 
-    print("[extract] stops.txt")
-    with zipfile.ZipFile(ZIP_PATH) as z, STOPS_TXT.open("wb") as f:
-        f.write(z.read("stops.txt"))
 
-    bbox = (
-        pl.read_csv(STOPS_TXT, infer_schema_length=10_000)
-        .filter(
-            pl.col("stop_lat").is_between(BBOX["lat_min"], BBOX["lat_max"])
-            & pl.col("stop_lon").is_between(BBOX["lon_min"], BBOX["lon_max"])
+def _dhid_expr() -> pl.Expr:
+    """First 3 colon-fields of a GTFS stop_id == its DHID (de:09362:11041)."""
+    p = pl.col("stop_id").str.splitn(":", 5).struct
+    return p.field("field_0") + ":" + p.field("field_1") + ":" + p.field("field_2")
+
+
+def gtfs_dhid_coords() -> pl.DataFrame:
+    """DHID → (lat, lon), platform centroid. Feeds merged in GTFS_FEEDS order."""
+    frames = []
+    for feed in GTFS_FEEDS:
+        stops = feed / "stops.txt"
+        if not stops.exists():
+            continue
+        g = (
+            pl.read_csv(stops).filter(pl.col("stop_id").is_not_null())
+            .with_columns(dhid=_dhid_expr())
+            .group_by("dhid")
+            .agg(stop_lat=pl.col("stop_lat").mean(), stop_lon=pl.col("stop_lon").mean())
         )
-        .select("stop_id", "stop_name", "stop_lat", "stop_lon", "parent_station")
-        .unique(subset=["stop_id"])
-        .sort("stop_name")
-    )
-    print(f"[bbox] {bbox.height:,} stops in RVV bbox")
-    bbox.write_parquet(RAW_SNAPSHOT, compression="zstd")
-    print(f"[ok] wrote {RAW_SNAPSHOT} ({RAW_SNAPSHOT.stat().st_size/1024:.0f} KB) — commit if changed")
-
-    # Clean up download artefacts so we don't leave 280 MB lying around.
-    ZIP_PATH.unlink(missing_ok=True)
-    STOPS_TXT.unlink(missing_ok=True)
-    return bbox
+        frames.append(g)
+    if not frames:
+        raise SystemExit(f"no GTFS stops.txt found under {[str(f) for f in GTFS_FEEDS]}")
+    # First feed wins on DHID conflict (.unique keep='first' after ordered concat).
+    return pl.concat(frames).unique(subset=["dhid"], keep="first")
 
 
-def _normalise(c: str) -> pl.Expr:
-    return (
-        pl.col(c).str.to_lowercase()
-        .str.replace_all("ß", "ss")
-        .str.replace_all("ü", "u")
-        .str.replace_all("ö", "o")
-        .str.replace_all("ä", "a")
-    )
+# ---------------------------------------------------------------- build
 
-
-def _looks_like_depot_code(name: str | None) -> bool:
-    """Skip fuzzy match for operator/depot codes (all-caps short, special tags)."""
-    if not name or not name.strip():
-        return True
-    n = name.strip()
-    if n.replace(" ", "").isupper() and len(n.replace(" ", "")) <= 4:
-        return True
-    if any(t in n for t in (" BTH", " DTH", " MTH", "Testhaltestelle", "Kein Zustieg", "vor LSt")):
-        return True
-    return False
-
-
-def _build_geo(bbox: pl.DataFrame) -> pl.DataFrame:
-    ours = rvv_stop_names()
+def build_geo() -> pl.DataFrame:
+    ours = rvv_stop_codes()
     total = ours["event_count"].sum()
-    print(f"[rvv] {ours.height} unique stop_names, {total:,} total stop-events")
+    print(f"[rvv] {ours.height} stop_codes, {total:,} stop-events")
 
-    gtfs_unique = bbox.select("stop_name", "stop_lat", "stop_lon").unique(subset=["stop_name"])
+    code2dhid = master_code_to_dhid()
+    dhid_df = pl.DataFrame(
+        {"stop_code": list(code2dhid), "dhid": list(code2dhid.values())}
+    )
+    coords = gtfs_dhid_coords()
 
-    exact = ours.join(gtfs_unique, on="stop_name", how="left")
-    n_exact = exact.filter(pl.col("stop_lat").is_not_null()).height
-    print(f"[match] exact-name: {n_exact}/{ours.height} ({n_exact/ours.height*100:.1f}%)")
-
-    misses = exact.filter(pl.col("stop_lat").is_null()).select("stop_name", "event_count")
-    candidates = misses.filter(
-        ~pl.col("stop_name").map_elements(_looks_like_depot_code, return_dtype=pl.Boolean)
+    geo = (
+        ours.join(dhid_df, on="stop_code", how="left")
+        .join(coords, on="dhid", how="left")
     )
 
-    gtfs_norm = gtfs_unique.with_columns(_normalise("stop_name").alias("_gnorm")).rename(
-        {"stop_name": "_gtfs_name"}
+    # Hand-filled coords for real stops missing from both feeds.
+    manual = pl.DataFrame(
+        {"stop_code": list(MANUAL_COORDS),
+         "m_lat": [c[0] for c in MANUAL_COORDS.values()],
+         "m_lon": [c[1] for c in MANUAL_COORDS.values()]}
     )
-    miss_norm = candidates.with_columns(_normalise("stop_name").alias("_onorm"))
+    geo = geo.join(manual, on="stop_code", how="left").with_columns(
+        stop_lat=pl.coalesce("stop_lat", "m_lat"),
+        stop_lon=pl.coalesce("stop_lon", "m_lon"),
+    ).drop("m_lat", "m_lon")
 
-    fuzzy = (
-        miss_norm.join(gtfs_norm, how="cross")
-        .filter(pl.col("_gnorm").str.contains(pl.col("_onorm"), literal=True))
-        .with_columns(_match_len=pl.col("_gtfs_name").str.len_chars())
-        .sort("stop_name", "_match_len")
-        .group_by("stop_name").first()
-        .select("stop_name", "stop_lat", "stop_lon", pl.col("_gtfs_name").alias("matched_to"))
+    # Classify: depots/tests/operational from the contact glossary, else stop.
+    kind_map = pl.DataFrame(
+        {"stop_code": list(NON_STOP_KIND), "kind": list(NON_STOP_KIND.values())}
+    )
+    geo = geo.join(kind_map, on="stop_code", how="left").with_columns(
+        kind=pl.col("kind").fill_null("stop")
     )
 
-    print(f"[fuzzy] added: {fuzzy.height}")
-    for r in fuzzy.iter_rows(named=True):
-        print(f"        {r['stop_name']!r:<32} ← {r['matched_to']!r}")
-
-    final = (
-        exact.join(fuzzy.select("stop_name", "stop_lat", "stop_lon"),
-                   on="stop_name", how="left", suffix="_fz")
-        .with_columns(
-            stop_lat=pl.coalesce(["stop_lat", "stop_lat_fz"]),
-            stop_lon=pl.coalesce(["stop_lon", "stop_lon_fz"]),
-        )
-        .drop("stop_lat_fz", "stop_lon_fz")
-    )
-    matched = final.filter(pl.col("stop_lat").is_not_null())
+    matched = geo.filter(pl.col("stop_lat").is_not_null())
     covered = matched["event_count"].sum()
+    real = geo.filter(pl.col("kind") == "stop")
+    real_matched = real.filter(pl.col("stop_lat").is_not_null())
     print(
-        f"[final] {matched.height}/{ours.height} stops ({matched.height/ours.height*100:.1f}%) "
-        f"covering {covered:,}/{total:,} events ({covered/total*100:.2f}%)"
+        f"[match] {matched.height}/{ours.height} codes have coords "
+        f"({covered:,}/{total:,} events, {covered/total*100:.2f}%)"
     )
-    n_miss = ours.height - matched.height
-    if n_miss:
-        print(f"[misses] {n_miss} unmatched — see docs/GTFS.md for the list")
-    return matched.sort("event_count", descending=True)
+    print(
+        f"[real]  {real_matched.height}/{real.height} passenger stops located "
+        f"({real_matched.height/real.height*100:.1f}%)"
+    )
+    miss_real = real.filter(pl.col("stop_lat").is_null())
+    if miss_real.height:
+        print(f"[gap]   {miss_real.height} real stop(s) still uncoordinated:")
+        for r in miss_real.sort("event_count", descending=True).iter_rows(named=True):
+            print(f"        {r['event_count']:>6,}  {r['stop_code']:<10} {r['stop_name']}")
+    n_depot = geo.filter(pl.col("kind") != "stop").height
+    print(f"[depot] {n_depot} non-stop codes excluded (see docs/CONTACT_NOTES.md)")
+    return geo.sort("event_count", descending=True)
 
+
+# ---------------------------------------------------------------- compare
+
+def compare() -> None:
+    """Old gtfs.de exact-name match vs new code→DHID→GTFS coverage."""
+    ours = rvv_stop_codes()
+    total = ours["event_count"].sum()
+
+    print(f"RVV universe: {ours.height} stop_codes, {total:,} named events\n")
+
+    if OLD_SNAPSHOT.exists():
+        old_raw = pl.read_parquet(OLD_SNAPSHOT).unique(subset=["stop_name"])
+        old = ours.join(
+            old_raw.select("stop_name", "stop_lat", "stop_lon"),
+            on="stop_name", how="left",
+        )
+        oh = old.filter(pl.col("stop_lat").is_not_null())
+        print(f"[OLD gtfs.de name-match] {oh.height}/{ours.height} stops, "
+              f"{oh['event_count'].sum():,} ev ({oh['event_count'].sum()/total*100:.2f}%)")
+        old_codes = set(oh["stop_code"].to_list())
+    else:
+        print(f"[OLD] {OLD_SNAPSHOT} absent — skipping old side.")
+        old_codes = set()
+
+    new = build_geo()
+    nh = new.filter(pl.col("stop_lat").is_not_null())
+    print(f"[NEW code→DHID→GTFS]     {nh.height}/{ours.height} stops, "
+          f"{nh['event_count'].sum():,} ev ({nh['event_count'].sum()/total*100:.2f}%)")
+    new_codes = set(nh["stop_code"].to_list())
+
+    if old_codes:
+        gain = nh.filter(pl.col("stop_code").is_in(list(new_codes - old_codes)))
+        print(f"\nboth: {len(old_codes & new_codes)} | "
+              f"only-OLD: {len(old_codes - new_codes)} | only-NEW: {len(new_codes - old_codes)}")
+        print("NEW gains:")
+        for r in gain.sort("event_count", descending=True).iter_rows(named=True):
+            print(f"  +{r['event_count']:>6,}  {r['stop_code']:<10} {r['stop_name']}")
+
+
+# ---------------------------------------------------------------- main
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--force", action="store_true",
-                    help="rebuild stops_geo.parquet even if it exists")
-    ap.add_argument("--refresh-raw", action="store_true",
-                    help="re-download the 245 MB GTFS zip + rebuild regensburg_stops.parquet")
+    ap.add_argument("--force", action="store_true", help="rebuild even if outputs exist")
+    ap.add_argument("--compare", action="store_true",
+                    help="print old gtfs.de vs new coverage and exit (no write)")
     args = ap.parse_args()
 
-    if OUT_GEO.exists() and not args.force and not args.refresh_raw:
-        print(f"[skip] {OUT_GEO} exists. --force to rebuild, --refresh-raw to also re-fetch GTFS.")
+    if args.compare:
+        compare()
         return 0
 
-    if args.refresh_raw or not RAW_SNAPSHOT.exists():
-        if not args.refresh_raw:
-            print(f"[note] {RAW_SNAPSHOT} missing — will download. (It's committed; usually present.)")
-        bbox = _refresh_raw_snapshot()
-    else:
-        bbox = pl.read_parquet(RAW_SNAPSHOT)
-        print(f"[raw] {bbox.height:,} stops from {RAW_SNAPSHOT} (committed snapshot)")
+    if OUT_GEO.exists() and not args.force:
+        print(f"[skip] {OUT_GEO.name} exists. --force to rebuild.")
+        return 0
 
-    geo = _build_geo(bbox)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    geo = build_geo()
     geo.write_parquet(OUT_GEO, compression="zstd")
-    print(f"[ok] {OUT_GEO}  ({geo.height} stops, {OUT_GEO.stat().st_size/1024:.0f} KB)")
+    print(f"[ok] {OUT_GEO} ({geo.height} codes, {OUT_GEO.stat().st_size/1024:.0f} KB)")
     return 0
 
 

@@ -110,10 +110,29 @@ base, then LEFT-joins the external context so no row multiplies:
 | university | `operating_day` | `oth_in_session`, `ur_in_session` |
 | events | `operating_day` | `has_event`, `event_count`, `event_attendance_sum/max`, `event_names`, `event_types` |
 | strikes | `operating_day` | `strike_any`, `strike_scope` |
-| stops_geo (GTFS) | `stop_name` | `stop_lat`, `stop_lon` (~95.5% non-null — misses + source in [`docs/GTFS.md`](./docs/GTFS.md)) |
+| stops_geo (GTFS) | `stop_code` (+ `stop_name` fallback) | `stop_lat`, `stop_lon`, `stop_kind` (**100% non-null** — non-passenger rows are filtered out, see below; source in [`docs/GTFS.md`](./docs/GTFS.md)) |
 
 Boolean flags (`has_event`, `is_*_holiday`, `strike_any`) are filled `False` on
 days with no match, so they're never null.
+
+**Non-passenger rows are cleansed out.** `assemble` drops the ~7,744 stop-events
+whose `stop_code` is a depot / subcontractor / test / operational marker
+(`stop_kind != 'stop'`, see [`docs/CONTACT_NOTES.md`](./docs/CONTACT_NOTES.md)), so
+every row in `features.parquet` is a real passenger stop-event with coordinates.
+The raw window parquets keep those rows — the filter lives only in `assemble`.
+
+**Trip-boundary flags.** After the cleanse, `assemble` adds three booleans per
+row (from `stop_seq` min/max within `trip_id`):
+
+| column | meaning |
+| --- | --- |
+| `is_first_stop` | first passenger stop of the trip |
+| `is_last_stop` | last passenger stop (the real terminus, depot already removed) |
+| `is_terminus` | `is_first_stop \| is_last_stop` |
+
+**Use this for dwell-based demand.** Terminus dwell is layover, not passengers
+(`is_last_stop` median ≈190 s vs interior ≈11 s), so exclude it:
+`df.filter(~pl.col("is_terminus"))` before treating `dwell_s` as a demand proxy.
 
 ### Generate it
 
@@ -165,22 +184,24 @@ windows = df.filter(pl.col("source_window") != "Daten_Linie_1_2024-09_2025-08") 
 | `fetch_holidays.py` | Bavaria public + school holidays | — (API) | `holidays_bavaria.parquet` |
 | `fetch_university_calendar.py` | OTH/UR term calendars | API + holidays parquet | `university_calendar.parquet` |
 | `fetch_gtfs.py` | RVV stop coordinates (join names → lat/lon) | committed snapshot `data/raw/gtfs/regensburg_stops.parquet` + RVV window parquets | `stops_geo.parquet` (~300 stops, gitignored, derived). `--refresh-raw` re-downloads the 245 MB GTFS zip + rebuilds the snapshot. Details in [`docs/GTFS.md`](./docs/GTFS.md). |
+| `fetch_routes_osm.py` | Per-line bus polylines from OpenStreetMap | Overpass API (cached at `data/raw/osm/bus_routes.json`) | `routes_osm.parquet` (~724 OSM relations, 94 line refs, GeoJSON LineString per row). See [`docs/SCHEDULE.md`](./docs/SCHEDULE.md). |
+| `fetch_schedule.py` | Unified backend dataset: GTFS schedule + GTFS-validated OSM geometry | RVV GTFS July feed + `routes_osm.parquet` + `stops_geo.parquet` | `lines.parquet`, `stop_times.parquet`, `service_days.parquet`. 4-stage validation gate — every kept (line, dir) is double-confirmed by GTFS & OSM. Full methodology + quality numbers in [`docs/SCHEDULE.md`](./docs/SCHEDULE.md). |
 
 ```bash
 uv run python pipeline/fetch_weather.py             # --force to refetch
 uv run python pipeline/fetch_holidays.py
 uv run python pipeline/fetch_university_calendar.py # needs holidays parquet first
-uv run python pipeline/fetch_gtfs.py                # needs ingest; reads committed raw snapshot (<1s)
-uv run python pipeline/fetch_gtfs.py --refresh-raw  # re-download 245 MB zip + rebuild the snapshot
+uv run python pipeline/fetch_gtfs.py                # needs ingest; stop_code→DHID→GTFS join (<1s)
+uv run python pipeline/fetch_gtfs.py --compare      # old gtfs.de vs new coverage
 uv run python pipeline/ingest.py                    # --file <name> for one file
 uv run python pipeline/ingest_external_csvs.py      # events + strikes CSVs → parquet
 ```
 
-Fetchers are idempotent (skip if output exists; `--force` to refetch). For
-GTFS, the bbox-filtered raw snapshot is **committed** at
-`data/raw/gtfs/regensburg_stops.parquet` (~86 KB) so a fresh clone gets stop
-coordinates without the 245 MB download. The derived `stops_geo.parquet` is
-gitignored like every other `data/parquet/` output.
+Fetchers are idempotent (skip if output exists; `--force` to refetch). GTFS
+geocoding joins the data's `stop_code` → DHID (RVV stop master CSV) → lat/lon
+(RVV GTFS `stops.txt`, committed text inputs — no download). Locates 100% of
+real stops; see [`docs/GTFS.md`](./docs/GTFS.md). The derived `stops_geo.parquet`
+is gitignored like every other `data/parquet/` output.
 
 ## Notebooks (`notebooks/`)
 

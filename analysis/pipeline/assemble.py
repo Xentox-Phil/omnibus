@@ -28,23 +28,25 @@ import polars as pl
 OUT_DIR = Path("data/parquet")
 OUT = OUT_DIR / "features.parquet"
 
-# Context parquets are NOT RVV stop-event tables — exclude from the concat base.
-CONTEXT_FILES = {
-    "weather_regensburg.parquet",
-    "daylight_regensburg.parquet",
-    "holidays_bavaria.parquet",
-    "university_calendar.parquet",
-    "events_regensburg.parquet",
-    "strikes_rvv.parquet",
-    "stops_geo.parquet",
-    "features.parquet",
-}
-
 HOUR_FMT = "%Y-%m-%d %H"  # local wall-clock hour join key
+
+# A stop-event window is identified by its schema, NOT a denylist: it carries
+# raw event timestamps + stop identity at event grain. This stays correct when
+# new context tables (lines, routes_osm, stop_times, …) land in data/parquet/.
+# features.parquet shares the signature, so exclude the pipeline's own output.
+WINDOW_SIGNATURE = {"ts_arrival_planned", "stop_code"}
+SELF_OUTPUT = {"features.parquet"}
 
 
 def rvv_parquets() -> list[Path]:
-    return sorted(p for p in OUT_DIR.glob("*.parquet") if p.name not in CONTEXT_FILES)
+    out = []
+    for p in sorted(OUT_DIR.glob("*.parquet")):
+        if p.name in SELF_OUTPUT:
+            continue
+        cols = set(pl.scan_parquet(p).collect_schema().names())
+        if WINDOW_SIGNATURE <= cols:
+            out.append(p)
+    return out
 
 
 def base_table(paths: list[Path]) -> pl.LazyFrame:
@@ -119,12 +121,25 @@ def strikes_ctx() -> pl.DataFrame:
     ).rename({"date": "operating_day"})
 
 
-def stops_geo_ctx() -> pl.DataFrame | None:
-    """RVV stop_name -> lat/lon from GTFS. Optional — skip cleanly if not built."""
+def stops_geo_ctx() -> tuple[pl.DataFrame, pl.DataFrame] | None:
+    """RVV stop_code/stop_name -> lat/lon + kind from GTFS. Skip cleanly if absent.
+
+    Returns (by_code, by_name). The primary join is on stop_code (RVV's clean
+    operator key); by_name backfills the ~127k rows where stop_code is null
+    (Apr-2025 Line-1 ingest defect, see docs/DATA_DEFECTS.md).
+    """
     p = OUT_DIR / "stops_geo.parquet"
     if not p.exists():
         return None
-    return pl.read_parquet(p).select("stop_name", "stop_lat", "stop_lon")
+    geo = pl.read_parquet(p)
+    by_code = geo.select("stop_code", "stop_lat", "stop_lon", pl.col("kind").alias("stop_kind"))
+    by_name = (
+        geo.filter(pl.col("stop_lat").is_not_null())
+        .select("stop_name", "stop_lat", "stop_lon")
+        .unique(subset=["stop_name"], keep="first")
+        .rename({"stop_lat": "stop_lat_nm", "stop_lon": "stop_lon_nm"})
+    )
+    return by_code, by_name
 
 
 def main() -> None:
@@ -150,7 +165,16 @@ def main() -> None:
     if geo is None:
         print("  (no stops_geo.parquet — features will lack stop_lat/stop_lon. Run fetch_gtfs.py.)")
     else:
-        lf = lf.join(geo.lazy(), on="stop_name", how="left")
+        by_code, by_name = geo
+        lf = (
+            lf.join(by_code.lazy(), on="stop_code", how="left")
+            .join(by_name.lazy(), on="stop_name", how="left")
+            .with_columns(
+                stop_lat=pl.coalesce("stop_lat", "stop_lat_nm"),
+                stop_lon=pl.coalesce("stop_lon", "stop_lon_nm"),
+            )
+            .drop("stop_lat_nm", "stop_lon_nm")
+        )
     # Fill the existence flags that are null where no event/strike that day.
     lf = lf.with_columns(
         pl.col("has_event").fill_null(False),
@@ -161,6 +185,30 @@ def main() -> None:
     ).drop("_hour_key")
 
     df = lf.collect(engine="streaming")
+
+    # Cleanse non-passenger rows: depot / subcontractor / test / operational
+    # stop_codes (stop_kind != 'stop', see docs/CONTACT_NOTES.md). The raw window
+    # parquets keep them; only this modelling table is filtered. Unknown codes
+    # (null stop_kind — none today, but future-proof) are kept, not silently cut.
+    if "stop_kind" in df.columns:
+        before = df.height
+        df = df.filter(pl.col("stop_kind").is_null() | (pl.col("stop_kind") == "stop"))
+        dropped = before - df.height
+        if dropped:
+            print(f"  [clean] dropped {dropped:,} non-passenger rows "
+                  f"(depot/operational/test) → {df.height:,} passenger stop-events")
+
+    # Trip-boundary flags, computed on the cleansed rows so `is_last_stop` marks
+    # the real terminus (last passenger stop), not the dropped depot. Terminus
+    # dwell is layover (~17× interior median), not passenger demand — flag so
+    # dwell→demand analysis can exclude it without dropping the row. (DATA_DEFECTS §4)
+    df = df.with_columns(
+        (pl.col("stop_seq") == pl.col("stop_seq").min().over("trip_id")).alias("is_first_stop"),
+        (pl.col("stop_seq") == pl.col("stop_seq").max().over("trip_id")).alias("is_last_stop"),
+    ).with_columns(
+        (pl.col("is_first_stop") | pl.col("is_last_stop")).alias("is_terminus")
+    )
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     df.write_parquet(OUT, compression="zstd")
     print(f"  -> {OUT}: {df.height:,} rows × {df.width} cols ({OUT.stat().st_size/1e6:.1f} MB)")

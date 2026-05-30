@@ -9,7 +9,10 @@ See [`BRIEF.md`](./BRIEF.md) for the challenge prompt, sponsor wishes, and judgi
 ## Repo layout
 
 - `analysis/` — Python data pipeline (uv-managed, `pyproject.toml` + `uv.lock`). All data lives here: `analysis/pipeline/`, `analysis/data/` (raw + parquet — **gitignored**, regenerable), `analysis/docs/`. Run scripts from inside `analysis/` via `uv run python pipeline/<script>.py`. See [`analysis/README.md`](./analysis/README.md).
-- `frontend/` — web app.
+- `backend/` — FastAPI app (uv-managed). **Thin dummy stub** serving the demand artifacts (`GET /demand/{date}`, `/events/{date}`). The frontend can also read the static `analysis/data/demand/*.json` directly; flesh out the API only if needed.
+- `frontend/` — TanStack Start web app. Map + demand heatmap + per-event curves + flex-route proposals.
+- **Active plan: [`PLAN.md`](./PLAN.md)** (root) — demand / on-demand flex-bus.
+- `ideas/_archive/` — earlier discarded iterations (incl. the reroute-on-closure B-plan).
 - `drone/` — unrelated side project (ignore).
 
 ## Dataset quirks (read before touching CSVs)
@@ -18,7 +21,7 @@ See [`BRIEF.md`](./BRIEF.md) for the challenge prompt, sponsor wishes, and judgi
 - **Delimiter:** comma, but with quoted fields — standard CSV.
 - **Columns are German.** See bottom of this file for the canonical translation.
 - **Some columns are empty** in the header (positions 10, 12, 14, 17, 19 carry sub-values like "Hauptbahnhof" — second name for same stop, etc.). Don't drop them blindly; inspect.
-- **No passenger counts.** APC data exists at RVV but was not shared. We infer demand from dwell time (see `PLAN.md` Person 2 → Model B).
+- **No passenger counts.** APC data exists at RVV but was not shared. We infer demand from **dwell time** — the core of the active plan. `dwell_s` per `(stop × hour × dow)` over a full year → a demand surface (`analysis/pipeline/predict_demand.py`).
 - **No weather columns.** Join externally via Open-Meteo or DWD station Regensburg (03379).
 - **Dataset inventory + where to drop raw files:** [`analysis/data/README.md`](./analysis/data/README.md) — single source for what each RVV window is, exact filenames, and folder layout.
 

@@ -178,7 +178,7 @@ Tagged `note = "vorlesungsfrei:weihnachten"`.
 
 ## 4. Regensburg Events (manual CSV)
 
-Per-row-sourced CSV at `data/raw/events_regensburg_2024_2025.csv` → parquet
+Per-row-sourced CSV at `data/raw/crawled/events_regensburg_2024_2025.csv` → parquet
 sibling via `pipeline/ingest_external_csvs.py`.
 
 **Output:** `data/parquet/events_regensburg.parquet` (~11 kB, 345 day-rows
@@ -198,7 +198,7 @@ incomplete) in [`EVENTS.md`](./EVENTS.md).
 
 ## 5. RVV-relevant Strikes (manual CSV)
 
-Per-row-sourced CSV at `data/raw/strikes_rvv_2024_2025.csv` → parquet sibling.
+Per-row-sourced CSV at `data/raw/crawled/strikes_rvv_2024_2025.csv` → parquet sibling.
 
 **Output:** `data/parquet/strikes_rvv.parquet` (~6 kB, 3 day-rows).
 

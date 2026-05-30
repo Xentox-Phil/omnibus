@@ -1,6 +1,6 @@
 # Regensburg Events 2024-2025 (and tail into 2026)
 
-Companion to `analysis/data/raw/events_regensburg_2024_2025.csv`.
+Companion to `analysis/data/raw/crawled/events_regensburg_2024_2025.csv`.
 
 Goal: enumerate major Regensburg events that drive bus passenger demand spikes,
 so they can be used as features (or controls) in delay/demand models.
@@ -180,7 +180,7 @@ When updating for a new year:
 ```python
 import polars as pl
 
-events = pl.read_csv("analysis/data/raw/events_regensburg_2024_2025.csv")
+events = pl.read_csv("analysis/data/raw/crawled/events_regensburg_2024_2025.csv")
 itcs = pl.read_parquet("analysis/data/parquet/itcs.parquet")
 
 # Date-only join: any event happening that operating_day

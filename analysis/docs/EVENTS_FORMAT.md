@@ -113,12 +113,11 @@ Without the OSM intersection, the reroute engine would have to test "does my can
 analysis/data/
   events/
     events.geojson                  # curated library (committed)
-    scenarios/
-      buergerfest-2025-demo.json    # saved demo scenarios (committed when useful)
-      flood-2024-06-demo.json
+    scenarios/                      # saved demo scenarios — committed only after locked in for the pitch
   raw/
-    events_regensburg_2024_2025.csv         # existing — date rows
-    betriebskalender_events.csv             # existing — date rows
+    crawled/
+      events_regensburg_2024_2025.csv       # existing — date rows
+      betriebskalender_events.csv           # existing — date rows
     osm/regensburg.osm.pbf                  # OSM extract for way lookup (gitignored)
   parquet/
     events_regensburg.parquet               # existing — day-rows derived from geojson
@@ -179,7 +178,7 @@ Runtime state for one in-progress operator session:
 
 Scenarios are **disposable** by default. They become committable only when:
 - A team member wants to share the demo state by URL.
-- A canonical demo scenario gets locked in (Bürgerfest, flood) — at which point it's checked into `scenarios/`.
+- A canonical demo scenario gets locked in for the pitch — at which point it's checked into `scenarios/`.
 
 ## Collision detection — input/output contract
 
@@ -211,15 +210,37 @@ This feeds the optimizer's `dropped_stops` and `t_new(stop) − t_planned(stop)`
 
 ## Migration path from current state
 
-`events_regensburg.parquet` and `betriebskalender_events.csv` are day-rows with no geometry. Migration:
+`events_regensburg.parquet` and `betriebskalender_events.csv` are day-rows with no geometry. **Only entries with authoritative, year-stable geometry get migrated into `events.geojson`.** Anything whose perimeter shifts year-by-year (Bürgerfest, Christkindlmarkt, Schlossfestspiele, floods) stays as date-row context in the existing parquet — those become library Closures only after an operator draws them and saves a Scenario.
 
-1. Group date rows by `event_id` → one Closure per real-world event.
-2. For each Closure, attach geometry by category:
-   - `festival` (Bürgerfest, Dult, Christkindlmarkt) → hand-drawn polygon in geojson.io.
-   - `marathon` → GPX from the official Regensburg Marathon site.
-   - `match` (Jahn home games) → Continental Arena Point with a 500m demand buffer.
-   - `operational` (X1, FP-Wechsel, Samstagsfahrplan) → `geometry: null`, `affects` set accordingly.
-3. Re-emit `events_regensburg.parquet` as a derived day-rows view of `events.geojson` so existing notebooks keep working.
+### Goes into `events.geojson`
+
+| Source                          | Closure                          | Geometry                                | `affects`                                  |
+| ------------------------------- | -------------------------------- | --------------------------------------- | ------------------------------------------ |
+| `events_regensburg.parquet`     | Regensburg Marathon (per year)   | LineString from official GPX            | `road_closure`, `demand_spike`             |
+| `events_regensburg.parquet`     | Jahn home games (per match)      | Point (Continental Arena) + buffer      | `demand_spike`                             |
+| `events_regensburg.parquet`     | Eisbären home games (per match)  | Point (Donau-Arena) + buffer            | `demand_spike`                             |
+| `events_regensburg.parquet`     | Dult Mai / Herbst (per year)     | Polygon (Dultplatz — fixed location)    | `demand_spike`                             |
+| `betriebskalender_events.csv`   | X1 Berufsschulen day (per year)  | `null`                                  | `service_capacity_uplift`                  |
+| `betriebskalender_events.csv`   | FP-Wechsel (per year, when known)| `null`                                  | `schedule_override`                        |
+| `betriebskalender_events.csv`   | Samstagsfahrplan Heiligabend     | `null`                                  | `schedule_override`                        |
+| `betriebskalender_events.csv`   | Samstagsfahrplan Silvester       | `null`                                  | `schedule_override`                        |
+| `betriebskalender_events.csv`   | EMIL/Altstadtbus 13:00 cutoff    | `null`                                  | `service_capacity_cut`                     |
+| `betriebskalender_events.csv`   | V-Frei (per occurrence)          | `null`                                  | `demand_drop`                              |
+| `betriebskalender_events.csv`   | Eislauf Linie D season           | `null`                                  | `service_capacity_uplift`                  |
+
+### Stays as date-row context (not migrated)
+
+- **Bürgerfest, Christkindlmarkt, Schlossfestspiele** — perimeter varies year-by-year and isn't published as GeoJSON.
+- **Floods** — geometry only exists after the fact, never as a planned input.
+- **Public holidays** — sourced cleaner from `holidays_bavaria.parquet`; don't duplicate.
+- **Sommerzeit transitions** — already covered by `daylight_regensburg.parquet`; operational impact marginal.
+- **Modul** tentative dates — too vague to act on.
+
+These remain as filter-able context for telemetry analysis; they become Closures only when an operator draws them at demo time and saves the Scenario.
+
+### Re-emit derived parquet
+
+`events_regensburg.parquet` continues to be the day-rows view used by notebooks; it picks up rows from `events.geojson` plus the unmigrated curated CSVs.
 
 ## What's out of scope for the hackathon
 

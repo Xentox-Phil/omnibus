@@ -1,0 +1,11 @@
+{
+  "_doc": "Event-type -> pressure curve library. The EVENT names date/start/end/venue and a list of origin `stops` each with a `multiplier`; the TYPE owns the curve shape + timing. Keypoints are [offset_min, level(0..1)], linearly interpolated, 0 outside range. Per-leg peak_s = multiplier * scale_s (multiplier is the only intensity knob — no attendance/cap math). Directional types: each origin stop emits an inbound leg (stop->venue, anchored to game `start`) and an outbound leg (venue->stop, anchored to game `end`). Non-directional types emit one `onsite` curve per listed stop (or the venue if `stops` is empty). Edit freely; rerun predict_demand.py --force.",
+
+  "sport_football": {
+    "doc": "Fans ride a hub->stadium before kickoff (inbound peaks ~1h pre-start), then stadium->hub after the final whistle (outbound peaks ~20min post-end). multiplier scales each origin's share. Each leg is a smooth double-logistic pulse: level = sigmoid((t-rise.center)/rise.k) * (1 - sigmoid((t-fall.center)/fall.k)), t = minutes from anchor, auto-normalized so peak level = 1.0. Smaller k = sharper S-bend. Asymmetry is the point: inbound builds gradually (wide rise.k) and cuts off hard at kickoff (tight fall.k); outbound spikes at the whistle (tight rise.k) and clears slowly (wide fall.k).",
+    "directional": true,
+    "scale_s": 2200,
+    "inbound":  { "anchor": "start", "shape": "logistic_pulse", "rise": { "center": -95, "k": 22 }, "fall": { "center": -8, "k": 8 } },
+    "outbound": { "anchor": "end",   "shape": "logistic_pulse", "rise": { "center": 6, "k": 5 },   "fall": { "center": 45, "k": 16 } }
+  }
+}

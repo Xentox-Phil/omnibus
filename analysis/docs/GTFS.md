@@ -1,90 +1,101 @@
 # GTFS — RVV stop coordinates
 
-How `data/parquet/stops_*.parquet` (the inputs that give every RVV stop a
-lat/lon) are built, what's covered, and what's still missing.
+How `data/parquet/stops_geo.parquet` (every RVV stop's lat/lon) is built, what's
+covered, and what's still missing.
 
-## Source
+## Approach — RVV-native ID join (not name-matching)
 
-[**gtfs.de Germany free aggregator**](https://gtfs.de/de/feeds/) — single zip,
-nationwide, refreshed weekly. The "free" tier has agencies + stops + routes +
-trips + stop_times for all public-transit operators in Germany (~687k stops).
-**No `shapes.txt`** in the free tier — that needs the paid feed or RVV's own
-GTFS export. Doesn't block Scene B; does block Scene A's per-segment
-map-matching (we'd be limited to straight-line stop-to-stop hops).
+We geocode through RVV's **own** master data using `stop_code` as the key:
 
-URL: `https://download.gtfs.de/germany/free/latest.zip` (~245 MB).
+```
+stop_event.stop_code  →  Haltestellen master CSV (Kürzel → DHID)
+                      →  RVV GTFS stops.txt (DHID → lat/lon)
+```
 
-## Pipeline (two-tier — mirrors events/strikes CSV pattern)
+`stop_code` is RVV's clean operator key (`HBF`, `AKORN`, `BPLZ`, …), so the join
+is **deterministic** — no name normalisation, no fuzzy false-positives, no
+245 MB download. The DHID (`Globale Haltestellen-Kennung`, e.g. `de:09362:11041`)
+is the standard German stop ID and equals the first three colon-fields of a GTFS
+`stop_id` (`de:09362:11041:0:1`), so the two join by ID directly.
 
-| File | Where | Tracked? | Built by |
-| --- | --- | --- | --- |
-| `regensburg_stops.parquet` (~4,010 rows, ~86 KB) | `data/raw/gtfs/` | **committed** | `fetch_gtfs.py --refresh-raw` (downloads 245 MB zip, bbox-filters, writes the snapshot, deletes the zip) |
-| `stops_geo.parquet` (~304 rows, ~9 KB) | `data/parquet/` | gitignored, regenerable | `fetch_gtfs.py` (default — reads the committed raw snapshot + RVV window parquets, runs the name-match) |
+### Inputs (all committed, tiny)
 
-**Default invocation** (`fetch_gtfs.py` with no flags): reads the committed raw
-snapshot, runs the join, writes `stops_geo.parquet`. Takes <1 second. This is
-what teammates run after `git clone` — **no 245 MB download**.
+| File | Role |
+| --- | --- |
+| `data/raw/Haltestellen und -punkte - Haltestelle.csv` | RVV stop master — `Kürzel` (= `stop_code`) → DHID. Semicolon-delimited, **latin-1**. |
+| `data/raw/gtfs_july2025/stops.txt` | RVV **city** feed — DHID → lat/lon (286 `de:09362` stops). |
+| `data/raw/gtfs_aug2025/stops.txt` | RVV **region** feed — backfills coords July lacks. |
 
-**Refreshing the raw snapshot** (rarely needed — RVV doesn't move stops):
-`fetch_gtfs.py --refresh-raw` re-downloads the zip, extracts, bbox-filters,
-overwrites `regensburg_stops.parquet`, deletes the zip + `stops.txt`.
+`assemble.py` joins `stops_geo.parquet` onto every stop-event on `stop_code`
+(primary), then coalesces a `stop_name` fallback for the ~127k rows whose
+`stop_code` is null (Apr-2025 Line-1 ingest defect, see [`DATA_DEFECTS.md`](./DATA_DEFECTS.md)).
+It adds `stop_lat`, `stop_lon`, and `stop_kind`.
 
-`assemble.py` left-joins `stops_geo.parquet` by `stop_name`, adding `stop_lat`
-and `stop_lon` columns to every stop-event in `features.parquet`.
+## Pipeline
 
-## Matching strategy
+```
+uv run python pipeline/fetch_gtfs.py            # build stops_geo.parquet (<1s)
+uv run python pipeline/fetch_gtfs.py --force    # rebuild
+uv run python pipeline/fetch_gtfs.py --compare  # old gtfs.de vs new coverage
+```
 
-1. **Exact name match** against the bbox extract (covers 92.9% of stops, ~94% of events).
-2. **Fuzzy fallback** — normalise (lowercase + umlaut/ß folding), then substring
-   match either direction; tie-break by shortest GTFS name to bias toward
-   exact-ish hits. Adds 3 stops. Operator/depot codes (all-caps ≤4 chars,
-   `BTH/DTH/MTH` suffixes, `Testhaltestelle`, `Kein Zustieg`, `vor LSt`) are
-   excluded from fuzzy match to prevent false positives.
+`stops_geo.parquet`: one row per `stop_code` — `stop_name`, `dhid`, `stop_lat`,
+`stop_lon`, `kind`. Gitignored (regenerable in <1s from the committed inputs).
 
 ## Coverage
 
-- **304 of 324** unique RVV stop names matched (93.8%).
-- **98.84%** of named stop-events (3,655,177 / 3,698,243) have coordinates.
-- **95.55%** of *all* stop-events (3,655,177 / 3,825,227). The 127,000-event
-  gap between the two numbers is rows with `stop_name = null` — the Apr 2025
-  Line-1 ingest defect (§4), unrelated to GTFS.
+- **310 / 310 real passenger stops located (100%)** — 308 via DHID→GTFS, 2 via
+  hand-filled OSM coords (`Königsstraße`, `Wittelsbacherstraße`, which carry a
+  DHID but no coordinate in either feed; `MANUAL_COORDS` in `fetch_gtfs.py`).
+- **99.80%** of *all* raw stop-events (3,817,483 / 3,825,227) carry a coordinate;
+  the remaining 7,744 are exactly the depot / operational / test rows below.
+  `assemble.py` **drops** those, so `features.parquet` is **100%** geocoded — there
+  is no real passenger stop-event without a coordinate.
+- This assumes the Apr-2025 Line-1 stop-identity back-fill ran (it's part of
+  `ingest.py`, so it always has). Before that fix 126,984 rows had `stop_name =
+  null` and coverage capped at 96.48% — see [`DATA_DEFECTS.md`](./DATA_DEFECTS.md) §4.
+- **14 non-stop codes** carry no coordinate **by design** — depot / subcontractor /
+  test / operational markers, tagged via `kind` and documented in
+  [`CONTACT_NOTES.md`](./CONTACT_NOTES.md). Filter with `stop_kind != 'stop'`.
 
-## Outliers — what's still missing
+### vs the old gtfs.de approach
 
-| Stop name | Events | Why missing | Recoverable? |
-| --- | ---: | --- | --- |
-| `(null)` | 126,984 | Ingest defect §4 — Apr 2025 Line-1 month lacks `Haltestelle` column. Stop identity is null *upstream*, not a matching failure. | Yes, via `stop_point ↔ stop_code` join from months that have both. Flagged for analysis layer. |
-| `Ostpreußenstraße` | 30,123 | Real RVV stop, genuinely absent from the gtfs.de **free** feed. Likely served by an agency not in the free tier. | Yes — paid gtfs.de tier, or RVV's own GTFS, or one-shot OSM Overpass lookup. |
-| `SMO BTH` | 2,676 | Depot / operator code (Stadtbus-Mobile or similar), not a passenger stop. | No — operational metadata, won't have a coordinate. |
-| `Königsstraße` | 2,390 | Real stop missing from feed (probably a spelling/agency issue). | Yes — manual lookup or OSM. |
-| `HUK` | 2,217 | Operator/route code. | No. |
-| `Kein Zustieg` | 1,157 | German for "no boarding" — operational flag, not a stop. | No. |
-| `Irl West` | 900 | Real Landkreis stop, missing from free feed. | Yes — OSM. |
-| `Werner-Heisenberg-Straße` | 900 | Real stop, missing. | Yes — OSM. |
-| `vor LSt` | 509 | Operational ("before signal"), not a stop. | No. |
-| `Watzinger`, `Wittelsbacherstraße`, `Tegernheim M-Luther-Kirche`, `Tegernheim Gh Federl` | ~330 each | Real stops, missing from free feed. | Yes — OSM. |
-| `RBO`, `Wittl`, `Laschinger`, `Ebenbeck` | <200 each | Looks like operator/depot codes (RBO = Regionalverkehr Bayern Ost?). | Probably not. |
-| `Testhaltestelle 1-4` | <40 each | Test stops, not real. | No. |
+`--compare` runs the previous method (exact + fuzzy name-match against a
+bbox-filtered slice of the 245 MB gtfs.de Germany feed) head-to-head:
 
-**Net real-stop misses:** ~7 stops covering ~35k events (~0.9%). All are
-recoverable via OSM Overpass or a richer GTFS source — not chased for the
-hackathon timeline.
+| | stops | events |
+| --- | --- | --- |
+| OLD (gtfs.de name-match) | 301 / 324 | 98.75% |
+| NEW (`stop_code` → DHID → GTFS) | **310 / 324** | **99.79%** |
 
-## How to improve coverage (when time permits)
+NEW is a **strict superset** — `only-OLD = 0`, so it loses nothing and gains 9
+codes (+~38k events), including `Ostpreußenstraße` (30k events) which the old
+doc had written off as "genuinely absent from the free feed". RVV's own feed has
+it. The legacy `gtfs/regensburg_stops.parquet` snapshot stays committed only so
+`--compare` keeps working.
 
-1. **OSM Overpass query** for `highway=bus_stop` in the bbox, name-match the
-   ~7 real missing stops. ~30 min of work, ~1% extra coverage.
-2. **Paid gtfs.de feed** — closes the free-tier gap entirely. €/month.
-3. **RVV's own GTFS** — if they publish one. The data we already have suggests
-   they probably do internally. Worth an email.
-4. **Back-fill `Daten_Linie_1` April 2025 nulls** via `stop_point → stop_code`
-   from adjacent months that have the column (defect §4). Recovers ~127k events
-   at one stroke — by far the highest-leverage fix.
+## `kind` values
+
+| `kind` | meaning |
+| --- | --- |
+| `stop` | passenger stop with coordinates |
+| `depot_rvv` | RVV's own depot (`BTH SMO` = `vor LSt`) |
+| `depot_sub` | subcontractor depot (`RBO`, `SÖLL`, `Wittl`, `EBEN`, `LAS`, `WAZ`) |
+| `operational` | operational marker (`HUK`, `LADE` = "Kein Zustieg") |
+| `test` | test stop (`TEST 1`–`4`) |
+
+Glossary + provenance: [`CONTACT_NOTES.md`](./CONTACT_NOTES.md).
+
+## Not from GTFS: route descriptions
+
+The July city feed leaves `route_long_name` **empty**; the Aug feed fills it but
+keys to regional line IDs that match only 2/47 of our `line` values. So GTFS
+can't translate city lines (`1`, `A`, `C1`, `N2`, `X1`, …) to route paths. That
+mapping lives in `Linien_Erklärung.pdf` (line → Kürzel → topology factor) — a
+separate PDF extraction, see [`RAW_INPUTS.md`](./RAW_INPUTS.md).
 
 ## Year drift
 
-We're using the **current** (~2026) feed against **2023–2025** stop_event data.
-Stop coordinates are essentially time-invariant — RVV doesn't move bus stops.
-What *could* drift: route shapes (if a line was rerouted) and line numbers (RVV
-did a `C` rebrand a while back). Verify with a spot-check before any
-shape-dependent analysis (Scene A).
+Feeds are the **2025** RVV exports against **2023–2025** stop-event data. Stop
+coordinates are time-invariant (RVV doesn't move stops). Route shapes / line
+numbers *can* drift; verify before any shape-dependent analysis.

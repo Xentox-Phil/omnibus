@@ -243,13 +243,54 @@ def read_melted(buf: BytesIO) -> pl.DataFrame:
     return wide.select(COLS)
 
 
+# stop_point is "<stop_code> (<position>)", e.g. "HBF (51)". The text before the
+# trailing " (NN)" is exactly the stop_code (verified 100%, 0 mismatches).
+_STOP_POINT_POS = r"\s*\(\d+\)\s*$"
+
+
+def reconcile_stop_identity(df: pl.DataFrame) -> pl.DataFrame:
+    """Back-fill null stop_code / stop_name (Apr-2025 Line-1 defect, DATA_DEFECTS §4).
+
+    Apr 2025 lacked the Haltestelle column, so its rows carry a valid stop_point
+    but null stop_code/stop_name. stop_point embeds the stop_code as its prefix,
+    and stop_point → stop_name is 1:1, so we recover both from the stop_point
+    using a lookup built from the months that do carry the full identity. Fully
+    self-contained: no external file, reproducible from the melted set alone.
+    """
+    n_code0 = df.filter(pl.col("stop_code").is_null()).height
+    # 1) stop_code from the stop_point prefix where missing.
+    df = df.with_columns(
+        stop_code=pl.when(
+            pl.col("stop_code").is_null() & pl.col("stop_point").is_not_null()
+        )
+        .then(pl.col("stop_point").str.replace(_STOP_POINT_POS, ""))
+        .otherwise(pl.col("stop_code"))
+    )
+    # 2) stop_name from a stop_code → stop_name lookup (rows that carry both).
+    lut = (
+        df.filter(pl.col("stop_code").is_not_null() & pl.col("stop_name").is_not_null())
+        .select("stop_code", "stop_name")
+        .unique(subset=["stop_code"])
+    )
+    df = (
+        df.join(lut, on="stop_code", how="left", suffix="_lut")
+        .with_columns(stop_name=pl.coalesce("stop_name", "stop_name_lut"))
+        .drop("stop_name_lut")
+    )
+    n_recovered = n_code0 - df.filter(pl.col("stop_code").is_null()).height
+    n_left = df.filter(pl.col("stop_name").is_null() & pl.col("stop_point").is_not_null()).height
+    print(f"  [reconcile] recovered stop_code for {n_recovered:,} rows; "
+          f"{n_left:,} rows with a stop_point still lack a stop_name")
+    return df
+
+
 def _build_melted(named_buffers: list[tuple[str, BytesIO]]) -> Path:
     """Pivot + concatenate melted monthly CSVs into one full-period parquet."""
     parts = []
     for name, buf in named_buffers:
         parts.append(read_melted(buf))
         print(f"  read {name}: {parts[-1].height:,} events")
-    df = transform(pl.concat(parts))
+    df = transform(reconcile_stop_identity(pl.concat(parts)))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUT_DIR / "Daten_Linie_1_2024-09_2025-08.parquet"
     df.write_parquet(out, compression="zstd")

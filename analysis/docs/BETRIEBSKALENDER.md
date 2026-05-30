@@ -52,7 +52,7 @@ Most public holidays are already in `holidays_bavaria.parquet`. Marathon, Dult, 
 
 ## Structured extraction
 
-Day-resolution structured extract → [`data/raw/betriebskalender_events.csv`](../data/raw/betriebskalender_events.csv).
+Day-resolution structured extract → [`data/raw/crawled/betriebskalender_events.csv`](../data/raw/crawled/betriebskalender_events.csv).
 
 Schema:
 

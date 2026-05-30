@@ -16,10 +16,11 @@ from pathlib import Path
 import polars as pl
 
 RAW = Path("data/raw")
+CRAWLED = RAW / "crawled"  # hand/agent-researched CSVs (per-row source URLs)
 OUT = Path("data/parquet")
 
-EVENTS_CSV = RAW / "events_regensburg_2024_2025.csv"
-STRIKES_CSV = RAW / "strikes_rvv_2024_2025.csv"
+EVENTS_CSV = CRAWLED / "events_regensburg_2024_2025.csv"
+STRIKES_CSV = CRAWLED / "strikes_rvv_2024_2025.csv"
 EVENTS_PARQUET = OUT / "events_regensburg.parquet"
 STRIKES_PARQUET = OUT / "strikes_rvv.parquet"
 
