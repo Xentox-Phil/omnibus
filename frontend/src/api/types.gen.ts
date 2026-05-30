@@ -5,6 +5,24 @@ export type ClientOptions = {
 }
 
 /**
+ * BusTrajectory
+ */
+export type BusTrajectory = {
+  /**
+   * Id
+   */
+  id: string
+  /**
+   * Line
+   */
+  line: string
+  /**
+   * Points
+   */
+  points: Array<Array<number>>
+}
+
+/**
  * DemandNode
  */
 export type DemandNode = {
@@ -209,6 +227,30 @@ export type NodeEvent = {
 }
 
 /**
+ * Trajectories
+ *
+ * Shape of trajectories_<date>.json — SUMO bus replay for the demo window.
+ */
+export type Trajectories = {
+  /**
+   * Date
+   */
+  date: string
+  /**
+   * Begin
+   */
+  begin: number
+  /**
+   * End
+   */
+  end: number
+  /**
+   * Buses
+   */
+  buses: Array<BusTrajectory>
+}
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -316,3 +358,33 @@ export type GetEventsResponses = {
 }
 
 export type GetEventsResponse = GetEventsResponses[keyof GetEventsResponses]
+
+export type GetSimData = {
+  body?: never
+  path: {
+    /**
+     * Date
+     */
+    date: string
+  }
+  query?: never
+  url: '/sim/{date}'
+}
+
+export type GetSimErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type GetSimError = GetSimErrors[keyof GetSimErrors]
+
+export type GetSimResponses = {
+  /**
+   * Successful Response
+   */
+  200: Trajectories
+}
+
+export type GetSimResponse = GetSimResponses[keyof GetSimResponses]

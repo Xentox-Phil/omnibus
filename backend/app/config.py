@@ -3,6 +3,8 @@ from pathlib import Path
 
 # Demand artifacts produced by analysis/pipeline/predict_demand.py.
 DEMAND_DIR = Path(os.environ.get("DEMAND_DIR", "../analysis/data/demand"))
+# SUMO bus-trajectory artifacts produced by analysis/pipeline/sumo/*.
+SUMO_DIR = Path(os.environ.get("SUMO_DIR", "../analysis/data/sumo"))
 CORS_ORIGINS = os.environ.get(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 ).split(",")

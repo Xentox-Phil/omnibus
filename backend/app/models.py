@@ -77,3 +77,24 @@ class DemandSurface(BaseModel):
     n_ticks: int
     tick_times: list[str]  # index -> "HH:MM" window start, length n_ticks
     nodes: list[DemandNode]
+
+
+# --- bus trajectories (trajectories_<date>.json) --------------------------
+# Produced by analysis/pipeline/sumo/*. One SUMO-simulated vehicle per trip,
+# sampled in geo coords. Drives the animated bus layer on the same sim clock.
+
+
+class BusTrajectory(BaseModel):
+    id: str  # gtfs2pt vehicle id (unique per trip)
+    line: str  # GTFS line short name ("1", "3", "5", "X4")
+    # each point is [t_seconds_since_midnight, lon, lat, angle_deg]
+    points: list[list[float]]
+
+
+class Trajectories(BaseModel):
+    """Shape of trajectories_<date>.json — SUMO bus replay for the demo window."""
+
+    date: str
+    begin: int  # first sampled second-of-day
+    end: int  # last sampled second-of-day
+    buses: list[BusTrajectory]

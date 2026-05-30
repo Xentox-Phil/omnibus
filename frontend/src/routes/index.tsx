@@ -8,13 +8,15 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { env } from '#/env'
 import { SimClockProvider, useSimClock } from '#/hooks/useSimClock'
 import { useDemandSurface, useEventCurves } from '#/hooks/useDemand'
+import { useSimTrajectories } from '#/hooks/useSim'
 import {
   lightPresetForHour,
   stopName
-  
+
 } from '#/lib/demand'
 import type {LightPreset} from '#/lib/demand';
 import { DemandHeatmap } from '#/components/map/DemandHeatmap'
+import { BusLayer } from '#/components/map/BusLayer'
 import { SimControls } from '#/components/SimControls'
 import { EventsPanel } from '#/components/events/EventsPanel'
 import { SimToast } from '#/components/events/SimToast'
@@ -24,8 +26,11 @@ export const Route = createFileRoute('/')({ component: Home })
 const REGENSBURG = { longitude: 12.0966, latitude: 49.0186, zoom: 13.2 }
 
 function Home() {
+  // Start at 17:00 — the replay window opens at 16:00 but trips need ~30 min to
+  // be mid-route, so the fleet is sparse before ~16:30 (0 buses exactly at
+  // 16:00). 17:00 has the most buses on-screen and leads into the 18:00 kickoff.
   return (
-    <SimClockProvider>
+    <SimClockProvider initialMinute={17 * 60}>
       <DemandView />
     </SimClockProvider>
   )
@@ -34,14 +39,17 @@ function Home() {
 function DemandView() {
   const mapRef = useRef<MapRef>(null)
   const [showHeatmap, setShowHeatmap] = useState(true)
+  const [showBuses, setShowBuses] = useState(true)
   const [mapReady, setMapReady] = useState(false)
   const lastPreset = useRef<LightPreset | null>(null)
   const { minute } = useSimClock()
 
   const surfaceQuery = useDemandSurface()
   const eventsQuery = useEventCurves()
+  const trajQuery = useSimTrajectories()
   const surface = surfaceQuery.data
   const events = eventsQuery.data
+  const traj = trajQuery.data
 
   // Drive the basemap light preset from the simulated hour (guarded so we only
   // touch the map when the preset actually changes).
@@ -81,6 +89,8 @@ function DemandView() {
           <DemandHeatmap surface={surface} minute={minute} />
         ) : null}
 
+        {traj && showBuses ? <BusLayer traj={traj} minute={minute} /> : null}
+
         {eventStops.map((code) => {
           const c = stopCoord(code)
           if (!c) return null
@@ -105,6 +115,8 @@ function DemandView() {
       <SimControls
         showHeatmap={showHeatmap}
         onToggleHeatmap={setShowHeatmap}
+        showBuses={showBuses}
+        onToggleBuses={setShowBuses}
       />
       {events ? <EventsPanel data={events} /> : null}
       {events ? <SimToast data={events} /> : null}

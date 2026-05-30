@@ -3,7 +3,13 @@
 import { type DefaultError, queryOptions } from '@tanstack/react-query'
 
 import { client } from '../client.gen'
-import { getDemand, getEvents, healthHealthGet, type Options } from '../sdk.gen'
+import {
+  getDemand,
+  getEvents,
+  getSim,
+  healthHealthGet,
+  type Options,
+} from '../sdk.gen'
 import type {
   GetDemandData,
   GetDemandError,
@@ -11,6 +17,9 @@ import type {
   GetEventsData,
   GetEventsError,
   GetEventsResponse,
+  GetSimData,
+  GetSimError,
+  GetSimResponse,
   HealthHealthGetData,
   HealthHealthGetResponse,
 } from '../types.gen'
@@ -135,4 +144,31 @@ export const getEventsOptions = (options: Options<GetEventsData>) =>
       return data
     },
     queryKey: getEventsQueryKey(options),
+  })
+
+export const getSimQueryKey = (options: Options<GetSimData>) =>
+  createQueryKey('getSim', options)
+
+/**
+ * Sim Trajectories
+ *
+ * SUMO bus replay for the date (trajectories_<date>.json).
+ */
+export const getSimOptions = (options: Options<GetSimData>) =>
+  queryOptions<
+    GetSimResponse,
+    GetSimError,
+    GetSimResponse,
+    ReturnType<typeof getSimQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getSim({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: getSimQueryKey(options),
   })

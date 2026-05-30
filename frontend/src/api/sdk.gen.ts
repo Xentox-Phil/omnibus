@@ -9,6 +9,9 @@ import type {
   GetEventsData,
   GetEventsErrors,
   GetEventsResponses,
+  GetSimData,
+  GetSimErrors,
+  GetSimResponses,
   HealthHealthGetData,
   HealthHealthGetResponses,
 } from './types.gen'
@@ -70,3 +73,16 @@ export const getEvents = <ThrowOnError extends boolean = false>(
     GetEventsErrors,
     ThrowOnError
   >({ url: '/events/{date}', ...options })
+
+/**
+ * Sim Trajectories
+ *
+ * SUMO bus replay for the date (trajectories_<date>.json).
+ */
+export const getSim = <ThrowOnError extends boolean = false>(
+  options: Options<GetSimData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<GetSimResponses, GetSimErrors, ThrowOnError>({
+    url: '/sim/{date}',
+    ...options,
+  })

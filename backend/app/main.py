@@ -14,8 +14,8 @@ import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import CORS_ORIGIN_REGEX, CORS_ORIGINS, DEMAND_DIR
-from app.models import DemandSurface, EventsResponse
+from app.config import CORS_ORIGIN_REGEX, CORS_ORIGINS, DEMAND_DIR, SUMO_DIR
+from app.models import DemandSurface, EventsResponse, Trajectories
 
 app = FastAPI(title="Omnibus demand API", version="0.1.0")
 app.add_middleware(
@@ -34,6 +34,13 @@ def _load(name: str) -> dict:
     return json.loads(path.read_text())
 
 
+def _load_sim(name: str) -> dict:
+    path = SUMO_DIR / name
+    if not path.exists():
+        raise HTTPException(404, f"{name} not found — run analysis/pipeline/sumo/*")
+    return json.loads(path.read_text())
+
+
 @app.get("/health")
 def health() -> dict:
     return {"ok": True}
@@ -49,3 +56,9 @@ def demand_surface(date: str) -> dict:
 def event_curves(date: str) -> dict:
     """The event-first 1-min curve export (demand_<date>_events.json)."""
     return _load(f"demand_{date}_events.json")
+
+
+@app.get("/sim/{date}", response_model=Trajectories, operation_id="getSim")
+def sim_trajectories(date: str) -> dict:
+    """SUMO bus replay for the date (trajectories_<date>.json)."""
+    return _load_sim(f"trajectories_{date}.json")

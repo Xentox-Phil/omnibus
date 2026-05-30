@@ -1,4 +1,4 @@
-import { Pause, Play, RotateCcw, Clock, Flame } from 'lucide-react'
+import { Pause, Play, RotateCcw, Clock, Flame, Bus } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import { Badge } from '#/components/ui/badge'
@@ -27,9 +27,13 @@ const PRESET_LABEL: Record<string, string> = {
 export function SimControls({
   showHeatmap,
   onToggleHeatmap,
+  showBuses,
+  onToggleBuses,
 }: {
   showHeatmap: boolean
   onToggleHeatmap: (v: boolean) => void
+  showBuses: boolean
+  onToggleBuses: (v: boolean) => void
 }) {
   const { minute, hhmm, playing, speed, toggle, reset, setSpeed, scrubTo } =
     useSimClock()
@@ -129,6 +133,18 @@ export function SimControls({
             checked={showHeatmap}
             onCheckedChange={onToggleHeatmap}
             aria-label="Toggle demand heatmap"
+          />
+        </label>
+
+        <label className="flex cursor-pointer items-center justify-between">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <Bus className="size-4 text-blue-500" />
+            Buses (SUMO replay)
+          </span>
+          <Switch
+            checked={showBuses}
+            onCheckedChange={onToggleBuses}
+            aria-label="Toggle bus layer"
           />
         </label>
       </CardContent>
