@@ -43,6 +43,8 @@ analysis/data/**
 # Regensburg census zones (473 polygons, residents by age group). City open
 # data — license unverified, fine for the hackathon; recheck before any public release.
 !analysis/data/raw/Population_Regensburg_2023/**
+# GTFS with shapes
+!analysis/data/raw/gtfs_with_shapes/**
 
 # --- Python ---
 .venv/

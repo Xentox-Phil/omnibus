@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url
+,SMO,http://www.rvv.de,Europe/Berlin,de,0049-941-204-955-55,http://www.rvv.de
