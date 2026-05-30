@@ -9,9 +9,8 @@ flex buses from low-pressure donor routes. Outputs:
   data/scenarios/<scenario_id>/fleet_snapshot.json
 
 The generated GTFS is a complete scenario feed: base RVV GTFS files copied from
-data/raw/gtfs plus appended passenger-service trips on existing public routes.
-Repositioning is written to scenario_manifest.json, not as fake GTFS routes.
-It does not overwrite the real RVV feed.
+data/raw/gtfs plus appended trips on existing public routes and one operational
+OUT route for unboardable repositioning. It does not overwrite the real RVV feed.
 
 Usage from analysis/:
     uv run python pipeline/flex_recommend.py
@@ -41,6 +40,8 @@ FEATURES = PARQUET / "features.parquet"
 RAW_GTFS = Path("data/raw/gtfs")
 OUT_ROOT = Path("data/scenarios")
 SERVICE_AGENCY_ID = "OMNIBUS"
+OUT_OF_SERVICE_ROUTE_ID = "OUT_OF_SERVICE"
+OUT_OF_SERVICE_ROUTE_SHORT_NAME = "OUT"
 
 # Demo assumptions for data RVV did not provide in the challenge bundle. Keep
 # these explicit so they can be replaced by real AVL/fleet metadata later.
@@ -908,6 +909,7 @@ def manifest_for_recommendations(
     recommendations: list[dict[str, Any]],
     service_day: date,
     relief_trip_ids: dict[str, str],
+    reposition_trip_ids: dict[str, str],
 ) -> dict[str, Any]:
     vehicles: list[dict[str, Any]] = []
     for rec in recommendations:
@@ -935,6 +937,8 @@ def manifest_for_recommendations(
                     {
                         "type": "reposition",
                         "role": "terminal_to_relief_origin",
+                        "route_id": OUT_OF_SERVICE_ROUTE_ID,
+                        "trip_id": reposition_trip_ids.get(rec["recommendation_id"]),
                         "from_stop": rec["deadhead"]["from_stop"],
                         "to_stop": rec["deadhead"]["to_stop"],
                         "depart": rec["deadhead"]["depart"],
@@ -957,7 +961,7 @@ def manifest_for_recommendations(
         )
     return {
         "service_date": service_day.isoformat(),
-        "description": "Flex-bus scenario sidecar. GTFS contains only passenger-service trips on existing public routes; repositioning is represented here.",
+        "description": "Flex-bus scenario sidecar. GTFS service trips use public routes; unboardable repositioning uses the single OUT_OF_SERVICE operational route.",
         "vehicles": vehicles,
     }
 
@@ -1040,6 +1044,24 @@ def generate_gtfs_zip(
 
     base_route_ids = {row.get("route_id", "") for row in routes_rows}
     relief_trip_ids: dict[str, str] = {}
+    reposition_trip_ids: dict[str, str] = {}
+
+    if OUT_OF_SERVICE_ROUTE_ID not in base_route_ids:
+        append_row(
+            routes_fields,
+            routes_rows,
+            {
+                "route_id": OUT_OF_SERVICE_ROUTE_ID,
+                "agency_id": SERVICE_AGENCY_ID,
+                "route_short_name": OUT_OF_SERVICE_ROUTE_SHORT_NAME,
+                "route_long_name": "Out of service / unboardable repositioning",
+                "route_type": 3,
+                "route_desc": "Operational movement. Passengers cannot board this vehicle segment.",
+                "route_color": "666666",
+                "route_text_color": "FFFFFF",
+            },
+        )
+        base_route_ids.add(OUT_OF_SERVICE_ROUTE_ID)
 
     for rec in active:
         route_id = relief_route_id_for_mission(rec, base_route_ids)
@@ -1077,6 +1099,42 @@ def generate_gtfs_zip(
                         "stop_sequence": seq,
                         "pickup_type": 0,
                         "drop_off_type": 0,
+                    },
+                )
+
+        reposition_stops = [rec["deadhead"]["from_stop"], rec["deadhead"]["to_stop"]]
+        if reposition_stops[0] != reposition_stops[1]:
+            reposition_trip_id = f"{rec['bus_id']}_OUT_OF_SERVICE_{slug(rec['recommendation_id'], 20)}"
+            reposition_trip_ids[rec["recommendation_id"]] = reposition_trip_id
+            append_row(
+                trips_fields,
+                trips_rows,
+                {
+                    "route_id": OUT_OF_SERVICE_ROUTE_ID,
+                    "service_id": "SCENARIO_SERVICE",
+                    "trip_id": reposition_trip_id,
+                    "trip_headsign": "Out of service",
+                    "trip_short_name": "unboardable",
+                    "direction_id": "",
+                    "block_id": rec["bus_id"],
+                    "shape_id": "",
+                },
+            )
+            start = parse_dt(rec["deadhead"]["depart"])
+            for seq, (stop_name, ts) in enumerate(
+                zip(reposition_stops, route_stop_times(reposition_stops, start, stop_lookup)), start=1
+            ):
+                append_row(
+                    stop_times_fields,
+                    stop_times_rows,
+                    {
+                        "trip_id": reposition_trip_id,
+                        "arrival_time": gtfs_time(ts, service_day),
+                        "departure_time": gtfs_time(ts, service_day),
+                        "stop_id": stop_lookup[stop_name].stop_id,
+                        "stop_sequence": seq,
+                        "pickup_type": 1,
+                        "drop_off_type": 1,
                     },
                 )
 
@@ -1152,7 +1210,7 @@ def generate_gtfs_zip(
             if path.is_file() and path.name not in handled:
                 zf.write(path, arcname=path.name)
 
-    return manifest_for_recommendations(active, service_day, relief_trip_ids)
+    return manifest_for_recommendations(active, service_day, relief_trip_ids, reposition_trip_ids)
 
 
 def json_default(obj: Any) -> str:

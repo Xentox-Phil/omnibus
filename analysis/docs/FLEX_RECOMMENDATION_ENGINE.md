@@ -158,30 +158,33 @@ Each selected bus gets:
 
 - a synthetic regular donor trip on its original public route, usually route
   `10`, with `block_id = bus_id`
+- an unboardable repositioning trip on the single operational route
+  `OUT_OF_SERVICE` (`route_short_name = OUT`), with boarding and alighting
+  disabled via `pickup_type = 1` and `drop_off_type = 1`
 - a passenger-serving relief trip on an existing public route, currently route
   `5` for the Jahnstadion demo, with the same `block_id`
 
-The GTFS intentionally does **not** create fake `FLEX-*` routes. The route list
-stays clean: the animator should see the flex bus running route `10`, then route
-`5`.
+The GTFS intentionally does **not** create fake `FLEX-*` route families. The
+route list stays clean: the animator should see the flex bus running route
+`10`, then `OUT`, then route `5`.
 
-The non-passenger repositioning move is represented in `scenario_manifest.json`,
-not as a GTFS route. Use this sidecar to draw an optional dashed movement:
+The same movement is also represented in `scenario_manifest.json`, so the
+animator can explain the state transition or draw it differently:
 
 ```json
 {
   "vehicle_id": "FLEX_10_02",
   "segments": [
     {"type": "service", "route_id": "10"},
-    {"type": "reposition", "from_stop": "Königswiesen", "to_stop": "Hauptbahnhof"},
+    {"type": "reposition", "route_id": "OUT_OF_SERVICE", "from_stop": "Königswiesen", "to_stop": "Hauptbahnhof"},
     {"type": "service", "route_id": "5"}
   ]
 }
 ```
 
 Because the service trips share the same `block_id`, the animation layer can
-show the same physical bus moving along Line 10, repositioning, then running the
-route 5 relief trip.
+show the same physical bus moving along Line 10, switching into the unboardable
+`OUT` state, then running the route 5 relief trip.
 
 The recommendation JSON remains the source for explanations, donor-route damage,
 cancelled mocked next trip ids, and scoring details.
