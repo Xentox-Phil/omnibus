@@ -13,12 +13,16 @@ import { busColor, busPositionsAt, FLEX_COLOR } from '#/lib/buses'
 const SOURCE_ID = 'buses'
 const DOT_LAYER = 'bus-dot'
 
+const OUT_OF_SERVICE_COLOR = '#64748b' // slate — reads as "not in service"
+
 type BusProps = {
   id: string
   line: string
+  label: string // dot glyph: active flex leg ("10"/"OUT"/"5") or the line
   color: string
   angle: number
   flex: boolean
+  outOfService: boolean
   block: string
 }
 type PointFeature = {
@@ -28,7 +32,14 @@ type PointFeature = {
 }
 type FeatureCollection = { type: 'FeatureCollection'; features: PointFeature[] }
 
-type Hovered = { lon: number; lat: number; line: string; flex: boolean; block: string }
+type Hovered = {
+  lon: number
+  lat: number
+  line: string
+  flex: boolean
+  block: string
+  outOfService: boolean
+}
 
 export function BusLayer({
   traj,
@@ -56,6 +67,7 @@ export function BusLayer({
         line: String(p.line ?? '?'),
         flex: Boolean(p.flex),
         block: String(p.block ?? ''),
+        outOfService: Boolean(p.outOfService),
       })
     }
     const onLeave = () => {
@@ -82,9 +94,15 @@ export function BusLayer({
       properties: {
         id: b.id,
         line: b.line,
-        color: busColor(b),
+        // flex dots show the leg they're running now ("10" → "OUT" → "5")
+        // instead of the flattened "FLEX"; scheduled buses show their line.
+        label: b.flex ? (b.segLine ?? b.line) : b.line,
+        // the unboardable repositioning leg paints slate, not magenta
+        // same day palette at every hour — no dusk/night recolor
+        color: b.outOfService ? OUT_OF_SERVICE_COLOR : busColor(b),
         angle: b.angle,
         flex: b.flex,
+        outOfService: b.outOfService ?? false,
         block: b.block ?? '',
       },
     })),
@@ -93,13 +111,14 @@ export function BusLayer({
   return (
     <>
       <Source id={SOURCE_ID} type="geojson" data={fc}>
-        {/* flex buses get an extra magenta glow ring so they stand out from the
-            scheduled lines even before you hover */}
+        {/* in-service flex buses get an extra magenta glow ring so they stand out
+            from the scheduled lines even before you hover; the unboardable
+            repositioning leg drops the glow to read as "out of service" */}
         <Layer
           id="bus-flex-glow"
           type="circle"
           slot="top"
-          filter={['==', ['get', 'flex'], true]}
+          filter={['all', ['==', ['get', 'flex'], true], ['!', ['get', 'outOfService']]]}
           paint={{
             'circle-color': FLEX_COLOR,
             'circle-radius': [
@@ -108,10 +127,12 @@ export function BusLayer({
             ],
             'circle-blur': 0.7,
             'circle-opacity': 0.55,
+            // emit full color regardless of the Standard basemap's light preset
+            // (otherwise the night preset dims it)
+            'circle-emissive-strength': 1,
           }}
         />
-        {/* dark contrast ring under the dot — keeps it visible on the light (day)
-            basemap, where a plain white stroke would wash out */}
+        {/* dark contrast ring under the dot — same at every hour (no switching) */}
         <Layer
           id="bus-halo"
           type="circle"
@@ -123,6 +144,7 @@ export function BusLayer({
               10, 9, 13, 13, 16, 20,
             ],
             'circle-blur': 0.4,
+            'circle-emissive-strength': 1,
           }}
         />
         {/* the colored bus dot, big enough to host the line number. Flex buses
@@ -140,6 +162,8 @@ export function BusLayer({
             'circle-stroke-color': ['case', ['get', 'flex'], '#fde68a', '#ffffff'],
             'circle-stroke-width': ['case', ['get', 'flex'], 3, 2],
             'circle-opacity': 1,
+            // keep the dot at full brightness under the night light preset
+            'circle-emissive-strength': 1,
           }}
         />
         {/* line number, centered on the dot — white glyph + dark halo reads on any
@@ -149,7 +173,7 @@ export function BusLayer({
           type="symbol"
           slot="top"
           layout={{
-            'text-field': ['get', 'line'],
+            'text-field': ['get', 'label'],
             'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
             'text-size': [
               'interpolate', ['linear'], ['zoom'],
@@ -162,6 +186,7 @@ export function BusLayer({
             'text-color': '#ffffff',
             'text-halo-color': 'rgba(15,23,42,0.9)',
             'text-halo-width': 1.4,
+            'text-emissive-strength': 1,
           }}
         />
       </Source>
@@ -179,11 +204,14 @@ export function BusLayer({
             <div className="flex flex-col gap-0.5">
               <span
                 className="text-[10px] font-bold uppercase tracking-wide"
-                style={{ color: FLEX_COLOR }}
+                style={{ color: hovered.outOfService ? OUT_OF_SERVICE_COLOR : FLEX_COLOR }}
               >
-                ⚡ Flexbus
+                {hovered.outOfService ? '○ Repositioning' : '⚡ Flexbus'}
               </span>
               <span className="text-xs font-medium">{hovered.block}</span>
+              {hovered.outOfService ? (
+                <span className="text-[10px] text-slate-500">out of service · no boarding</span>
+              ) : null}
             </div>
           ) : (
             <span className="text-xs font-medium">Linie {hovered.line}</span>

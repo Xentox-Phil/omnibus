@@ -1,132 +1,180 @@
-import { ArrowRight, Activity, MapPin, Timer } from 'lucide-react'
+import { ArrowRight, MapPin, Play } from 'lucide-react'
 
 import type { EventCurves, Leg } from '#/api'
-import { Badge } from '#/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
-import { Separator } from '#/components/ui/separator'
+import { Button } from '#/components/ui/button'
+import { useSimClock } from '#/hooks/useSimClock'
+import { lineColor } from '#/lib/buses'
 import {
   hhmmToMin,
   legDirection,
   legState,
   stopName,
 } from '#/lib/demand'
-import { Sparkline  } from './Sparkline'
-import type {SparkMarker} from './Sparkline';
+import { Sparkline } from './Sparkline'
 
-function LegRow({
+// Demo: only line 5 serves Jahnstadion in our dataset.
+const VENUE_LINE: Record<string, string> = {
+  JAHN: '5',
+}
+
+function lineForVenue(venue: string): string | null {
+  return VENUE_LINE[venue] ?? null
+}
+
+function LineChip({ line }: { line: string }) {
+  return (
+    <span
+      className="inline-flex h-4 min-w-5 items-center justify-center rounded px-1 text-[10px] font-semibold tabular-nums text-white"
+      style={{ backgroundColor: lineColor(line) }}
+    >
+      {line}
+    </span>
+  )
+}
+
+function LegBlock({
   leg,
   event,
+  line,
+  label,
   minute,
 }: {
   leg: Leg
   event: EventCurves
+  line: string | null
+  label: string
   minute: number
 }) {
   const dir = legDirection(leg, event.venue)
   const state = legState(leg, minute)
-  const start = hhmmToMin(leg.start)
-  const end = hhmmToMin(leg.end)
-  const span = Math.max(1, end - start)
-  const toX = (m: number) => Math.max(0, Math.min(1, (m - start) / span))
-
-  // 4 timeline markers: the match (event_start/end) + this leg's pressure span.
-  const markers: SparkMarker[] = [
-    { x01: 0, dashed: true }, // leg.start
-    { x01: 1, dashed: true }, // leg.end
-    { x01: toX(hhmmToMin(event.event_start)) }, // kickoff
-    { x01: toX(hhmmToMin(event.event_end)) }, // whistle
-  ]
-
-  const peakS = Math.round(leg.peak_s)
-
+  const color = dir === 'inbound' ? 'text-sky-600' : 'text-orange-600'
   return (
-    <div className={state.active ? 'text-foreground' : 'text-muted-foreground'}>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium">
-          <Badge variant={dir === 'inbound' ? 'default' : 'secondary'}>
-            {dir}
-          </Badge>
-          <span className="flex items-center gap-1">
-            {stopName(leg.from)}
-            <ArrowRight className="size-3" />
-            {leg.to ? stopName(leg.to) : '—'}
-          </span>
-        </div>
-        {state.active ? (
-          <Badge variant="destructive" className="gap-1">
-            <Activity className="size-3 animate-pulse" />
-            live
-          </Badge>
-        ) : null}
+    <div className="flex flex-col gap-1">
+      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
       </div>
-
-      <div
-        className={
-          dir === 'inbound' ? 'text-sky-600' : 'text-orange-600'
-        }
-      >
+      <div className="flex items-center gap-1.5 text-xs">
+        {line ? <LineChip line={line} /> : null}
+        <span>{stopName(leg.from)}</span>
+        <ArrowRight className={`size-3 ${color}`} />
+        <span>{leg.to ? stopName(leg.to) : '—'}</span>
+      </div>
+      <div className={color}>
         <Sparkline
           values={leg.pressure_norm}
-          markers={markers}
+          height={28}
           cursor01={state.active ? state.progress01 : undefined}
+          startMin={hhmmToMin(leg.start)}
+          endMin={hhmmToMin(leg.end)}
         />
-      </div>
-
-      <div className="mt-1 flex items-center justify-between text-[11px] tabular-nums">
-        <span className="flex items-center gap-1">
-          <MapPin className="size-3" /> Affected: {stopName(leg.from)}
-        </span>
-        <span className="flex items-center gap-1">
-          <Timer className="size-3" /> peak dwell {peakS}s
-        </span>
-      </div>
-      <div className="mt-0.5 text-[10px] text-muted-foreground tabular-nums">
-        ramp {leg.start}–{leg.end}
       </div>
     </div>
   )
 }
 
-export function EventCard({
-  event,
+function MatchBar({
+  start,
+  end,
   minute,
 }: {
-  event: EventCurves
+  start: string
+  end: string
   minute: number
 }) {
-  const live = event.legs.some((l) => legState(l, minute).active)
+  const s = hhmmToMin(start)
+  const e = hhmmToMin(end)
+  const span = Math.max(1, e - s)
+  const p = Math.max(0, Math.min(1, (minute - s) / span))
+  const active = minute >= s && minute <= e
+  return (
+    <div className="flex flex-col gap-2 py-4">
+      <div className="relative h-2">
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+        <div
+          className="absolute left-0 top-1/2 h-px -translate-y-1/2 bg-foreground/60"
+          style={{ width: `${p * 100}%` }}
+        />
+        <span className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-foreground/70" />
+        <span className="absolute right-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-foreground/70" />
+        {active ? (
+          <span
+            className="absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full bg-foreground shadow ring-2 ring-card"
+            style={{ left: `${p * 100}%`, transform: 'translate(-50%, -50%)' }}
+          />
+        ) : null}
+      </div>
+      <div className="flex justify-between text-[10px] tabular-nums text-muted-foreground">
+        <span>{start}</span>
+        <span className="font-medium uppercase tracking-wide">Match</span>
+        <span>{end}</span>
+      </div>
+    </div>
+  )
+}
+
+export function EventCard({ event }: { event: EventCurves }) {
+  const { minute, scrubTo, play } = useSimClock()
+  const dwellStart = Math.min(...event.legs.map((l) => hhmmToMin(l.start)))
+  const jump = () => {
+    scrubTo(dwellStart)
+    play()
+  }
+  const line = lineForVenue(event.venue)
+  const inbound = event.legs.find(
+    (l) => legDirection(l, event.venue) === 'inbound',
+  )
+  const outbound = event.legs.find(
+    (l) => legDirection(l, event.venue) === 'outbound',
+  )
 
   return (
-    <Card size="sm" className="gap-3 bg-card/85 backdrop-blur">
-      <CardHeader className="gap-1">
-        <CardTitle className="flex items-center justify-between">
-          <span>{event.label}</span>
-          {live ? (
-            <Badge variant="destructive" className="gap-1">
-              <Activity className="size-3 animate-pulse" />
-              active
-            </Badge>
-          ) : null}
-        </CardTitle>
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          <MapPin className="size-3" />
-          {stopName(event.venue)}
-          <Badge variant="outline" className="tabular-nums">
-            Kickoff {event.event_start}
-          </Badge>
-          <Badge variant="outline" className="tabular-nums">
-            Whistle {event.event_end}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {event.legs.map((leg, i) => (
-          <div key={`${leg.from}-${leg.to}-${i}`}>
-            {i > 0 ? <Separator className="mb-3" /> : null}
-            <LegRow leg={leg} event={event} minute={minute} />
+    <div className="px-4 py-3">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <div className="text-sm font-semibold">
+            {event.label.replace(/\s*\(demo\)\s*$/i, '')}
           </div>
-        ))}
-      </CardContent>
-    </Card>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3" />
+            <span>{stopName(event.venue)}</span>
+          </div>
+        </div>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          onClick={jump}
+          aria-label="Jump to dwell start and play"
+          title="Jump to dwell start and play"
+        >
+          <Play />
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {inbound ? (
+          <LegBlock
+            leg={inbound}
+            event={event}
+            line={line}
+            label="Inbound"
+            minute={minute}
+          />
+        ) : null}
+        <MatchBar
+          start={event.event_start}
+          end={event.event_end}
+          minute={minute}
+        />
+        {outbound ? (
+          <LegBlock
+            leg={outbound}
+            event={event}
+            line={line}
+            label="Outbound"
+            minute={minute}
+          />
+        ) : null}
+      </div>
+    </div>
   )
 }

@@ -10,6 +10,7 @@ import { SimClockProvider, useSimClock } from '#/hooks/useSimClock'
 import { useDemandSurface, useEventCurves } from '#/hooks/useDemand'
 import { useSimTrajectories } from '#/hooks/useSim'
 import {
+  eventMoments,
   lightPresetForHour,
   stopName
 
@@ -54,15 +55,18 @@ function DemandView() {
   // Drive the basemap light preset from the simulated hour (guarded so we only
   // touch the map when the preset actually changes).
   const hour = Math.floor(minute / 60)
+  const preset = lightPresetForHour(hour)
+  // dusk + night both render a dark navy basemap — markers and bus dots switch
+  // to their high-contrast night styling for either.
+  const night = preset === 'night' || preset === 'dusk'
   useEffect(() => {
     if (!mapReady) return
     const map = mapRef.current?.getMap()
     if (!map) return
-    const next = lightPresetForHour(hour)
-    if (next === lastPreset.current) return
-    map.setConfigProperty('basemap', 'lightPreset', next)
-    lastPreset.current = next
-  }, [hour, mapReady])
+    if (preset === lastPreset.current) return
+    map.setConfigProperty('basemap', 'lightPreset', preset)
+    lastPreset.current = preset
+  }, [preset, mapReady])
 
   // Venue / affected stops to pin on the map for orientation.
   const eventStops = events
@@ -74,6 +78,12 @@ function DemandView() {
     const n = surface?.nodes.find((x) => x.stop_code === code)
     return n ? { lon: n.lon, lat: n.lat } : null
   }
+
+  // Earliest notable moment across all events (first inbound ramp) — the Reset
+  // button jumps here so a demo lands right where the action begins.
+  const firstEventMinute = events
+    ? eventMoments(events.events)[0]?.minute
+    : undefined
 
   return (
     <div className="relative h-screen w-screen overflow-hidden">
@@ -101,11 +111,24 @@ function DemandView() {
               latitude={c.lat}
               anchor="bottom"
             >
-              <div className="flex flex-col items-center">
-                <span className="rounded-full bg-card/90 px-2 py-0.5 text-[10px] font-medium shadow ring-1 ring-foreground/10 backdrop-blur">
+              <div className="flex flex-col items-center gap-1">
+                <span
+                  className={
+                    night
+                      ? 'rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-900 shadow-lg'
+                      : 'rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-slate-900 shadow-md backdrop-blur'
+                  }
+                >
                   {stopName(code)}
                 </span>
-                <MapPin className="size-5 text-primary drop-shadow" />
+                <MapPin
+                  strokeWidth={2.25}
+                  className={
+                    night
+                      ? 'size-7 fill-white text-slate-800 drop-shadow-[0_1px_5px_rgba(0,0,0,0.85)]'
+                      : 'size-7 fill-primary text-white drop-shadow-md'
+                  }
+                />
               </div>
             </Marker>
           )
@@ -117,6 +140,7 @@ function DemandView() {
         onToggleHeatmap={setShowHeatmap}
         showBuses={showBuses}
         onToggleBuses={setShowBuses}
+        resetMinute={firstEventMinute}
       />
       {events ? <EventsPanel data={events} /> : null}
       {events ? <SimToast data={events} /> : null}

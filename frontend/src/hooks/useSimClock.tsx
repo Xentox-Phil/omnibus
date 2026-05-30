@@ -11,7 +11,7 @@ import type {ReactNode} from 'react';
 
 import { minToHHMM } from '#/lib/demand'
 
-export const SPEEDS = [1, 5, 30, 120] as const
+export const SPEEDS = [1, 5, 10, 30, 60, 120] as const
 export type Speed = (typeof SPEEDS)[number]
 
 const MINUTES_PER_DAY = 1440

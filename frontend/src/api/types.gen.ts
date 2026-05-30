@@ -25,9 +25,31 @@ export type BusTrajectory = {
    */
   flex?: boolean
   /**
+   * Segments
+   */
+  segments?: Array<FlexSegment> | null
+  /**
    * Points
    */
   points: Array<Array<number>>
+}
+
+/**
+ * FlexSegment — one leg of a flex block (10 → OUT → 5).
+ */
+export type FlexSegment = {
+  /**
+   * Role: "service" | "reposition" | "relief"
+   */
+  role: string
+  /**
+   * Line: leg's GTFS line ("10", "OUT", "5")
+   */
+  line: string
+  /**
+   * Start: seconds since midnight this leg begins
+   */
+  start: number
 }
 
 /**
