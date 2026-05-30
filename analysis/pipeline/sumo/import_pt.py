@@ -7,6 +7,11 @@ Produces the public-transport add-files the simulation loads:
   pt_vehicles.add.xml  one vehicle per trip, with stop sequence + departure
   pt_vtypes.add.xml    bus vehicle type
 Runs from data/sumo/ so gtfs2pt's intermediate fcd/ + gpsdat/ land there.
+
+Post-step: `_flex_merge` folds each FLEX_xx_yy block's three trip-vehicles
+(line-10 leg, OUT_OF_SERVICE deadhead, relief leg) into one continuous SUMO
+vehicle with a `parking` dwell at the layover, so the simulated flex bus stays
+visible across the handoff. See `analysis/docs/FLEX_BLOCK_MERGE.md`.
 """
 
 from __future__ import annotations
@@ -16,9 +21,10 @@ import subprocess
 import sys
 
 import _sumo_env as env
+from _flex_merge import merge_flex_blocks
 
 DATE = "20250728"
-BEGIN, END = 16 * 3600, 21 * 3600  # 16:00-21:00
+BEGIN, END = 10 * 3600, 21 * 3600  # 10:00-21:00
 
 
 def main() -> None:
@@ -56,6 +62,9 @@ def main() -> None:
     print("+", " ".join(cmd), flush=True)
     subprocess.run(cmd, check=True, cwd=str(env.DATA_DIR))
     print(f"\nPT add-files written to {env.DATA_DIR}")
+
+    n = merge_flex_blocks(vehicles, net)
+    print(f"flex-block merge: folded {n} block(s) into single vehicles")
 
 
 if __name__ == "__main__":

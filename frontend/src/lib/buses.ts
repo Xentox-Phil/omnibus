@@ -10,13 +10,24 @@ export const LINE_COLORS: Record<string, string> = {
 }
 export const LINE_COLOR_FALLBACK = '#94a3b8'
 
+// Scripted flex buses get their own loud color so they read instantly as "not a
+// scheduled line" — a hot magenta none of the line palette uses.
+export const FLEX_COLOR = '#ec4899'
+
 export function lineColor(line: string): string {
   return LINE_COLORS[line] ?? LINE_COLOR_FALLBACK
+}
+
+/** Dot color for a bus — flex buses override their line color. */
+export function busColor(b: { flex?: boolean | null; line: string }): string {
+  return b.flex ? FLEX_COLOR : lineColor(b.line)
 }
 
 export interface BusPos {
   id: string
   line: string
+  flex: boolean
+  block?: string
   lon: number
   lat: number
   angle: number
@@ -58,6 +69,8 @@ function posForBus(bus: BusTrajectory, t: number): BusPos | null {
   return {
     id: bus.id,
     line: bus.line,
+    flex: bus.flex ?? false,
+    block: bus.block ?? undefined,
     lon: p[1] + (q[1] - p[1]) * f,
     lat: p[2] + (q[2] - p[2]) * f,
     angle: lerpAngle(p[3], q[3], f),

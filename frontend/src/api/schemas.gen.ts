@@ -10,6 +10,22 @@ export const BusTrajectorySchema = {
       type: 'string',
       title: 'Line',
     },
+    block: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Block',
+    },
+    flex: {
+      type: 'boolean',
+      title: 'Flex',
+      default: false,
+    },
     points: {
       items: {
         items: {

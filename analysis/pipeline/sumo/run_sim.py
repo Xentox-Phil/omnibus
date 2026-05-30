@@ -14,7 +14,7 @@ import subprocess
 
 import _sumo_env as env
 
-BEGIN, END = 16 * 3600, 21 * 3600  # 16:00-21:00
+BEGIN, END = 10 * 3600, 21 * 3600  # 10:00-21:00
 FCD_PERIOD = 3  # seconds between FCD samples
 
 

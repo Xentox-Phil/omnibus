@@ -49,3 +49,9 @@ def binary(name: str) -> str:
 REPO_ANALYSIS = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ANALYSIS / "data" / "sumo"
 GTFS_JULY = REPO_ANALYSIS / "data" / "raw" / "gtfs_july2025"
+# Flex-bus scenario feed. Same July base RVV timetable plus two scripted FLEX_*
+# blocks: a line-10 bus that pulls off, deadheads (OUT_OF_SERVICE), then runs a
+# route-5 relief leg to Jahnstadion. Shipped as a zip (gitignored, like all of
+# data/); subset_gtfs auto-extracts it to GTFS_SCENARIO on first run.
+SCENARIO_ZIP = REPO_ANALYSIS / "data" / "_originals" / "scenario_gtfs.zip"
+GTFS_SCENARIO = REPO_ANALYSIS / "data" / "raw" / "gtfs_scenario"

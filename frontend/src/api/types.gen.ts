@@ -17,6 +17,14 @@ export type BusTrajectory = {
    */
   line: string
   /**
+   * Block
+   */
+  block?: string | null
+  /**
+   * Flex
+   */
+  flex?: boolean
+  /**
    * Points
    */
   points: Array<Array<number>>

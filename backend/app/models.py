@@ -86,7 +86,11 @@ class DemandSurface(BaseModel):
 
 class BusTrajectory(BaseModel):
     id: str  # gtfs2pt vehicle id (unique per trip)
-    line: str  # GTFS line short name ("1", "3", "5", "X4")
+    line: str  # GTFS line short name ("1", "3", "5", "10", "X4")
+    # Scripted flex blocks only: block id ("FLEX_10_02") + flag. A flex bus is a
+    # line-10 vehicle that pulls off, deadheads, then runs a route-5 relief leg.
+    block: str | None = None
+    flex: bool = False
     # each point is [t_seconds_since_midnight, lon, lat, angle_deg]
     points: list[list[float]]
 
