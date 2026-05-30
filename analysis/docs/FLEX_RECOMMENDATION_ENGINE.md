@@ -19,7 +19,8 @@ data/scenarios/<scenario_id>/
 ├── fleet_snapshot.json
 ├── pressure_input.json
 ├── recommendations.json
-└── scenario_gtfs.zip
+├── scenario_gtfs.zip
+└── scenario_manifest.json
 ```
 
 Serve generated scenarios to the UI:
@@ -142,7 +143,8 @@ selected.
 ## GTFS output
 
 `scenario_gtfs.zip` is a complete scenario feed. It copies the base GTFS files
-from `data/raw/gtfs/`, then appends our scenario rows. It contains:
+from `data/raw/gtfs/`, then appends our scenario passenger-service rows. It
+contains:
 
 - `agency.txt`
 - `stops.txt`
@@ -154,14 +156,32 @@ from `data/raw/gtfs/`, then appends our scenario rows. It contains:
 
 Each selected bus gets:
 
-- a synthetic regular donor trip on its original route, usually route `10`, with
-  `block_id = bus_id`
-- an optional deadhead/transition trip from its terminal to the flex origin
-- a passenger-serving flex trip with `block_id = bus_id`
+- a synthetic regular donor trip on its original public route, usually route
+  `10`, with `block_id = bus_id`
+- a passenger-serving relief trip on an existing public route, currently route
+  `5` for the Jahnstadion demo, with the same `block_id`
 
-Because all three trips share the same `block_id`, the animation layer can show
-the same bus moving along Line 10, transitioning to the pressure origin, then
-running the flex relief route.
+The GTFS intentionally does **not** create fake `FLEX-*` routes. The route list
+stays clean: the animator should see the flex bus running route `10`, then route
+`5`.
+
+The non-passenger repositioning move is represented in `scenario_manifest.json`,
+not as a GTFS route. Use this sidecar to draw an optional dashed movement:
+
+```json
+{
+  "vehicle_id": "FLEX_10_02",
+  "segments": [
+    {"type": "service", "route_id": "10"},
+    {"type": "reposition", "from_stop": "Königswiesen", "to_stop": "Hauptbahnhof"},
+    {"type": "service", "route_id": "5"}
+  ]
+}
+```
+
+Because the service trips share the same `block_id`, the animation layer can
+show the same physical bus moving along Line 10, repositioning, then running the
+route 5 relief trip.
 
 The recommendation JSON remains the source for explanations, donor-route damage,
 cancelled mocked next trip ids, and scoring details.
