@@ -198,6 +198,7 @@ uv run python pipeline/fetch_gtfs.py --compare      # old gtfs.de vs new coverag
 uv run python pipeline/ingest.py                    # --file <name> for one file
 uv run python pipeline/ingest_external_csvs.py      # events + strikes CSVs → parquet
 uv run python pipeline/flex_recommend.py --force    # demo flex recommendations + scenario GTFS
+#   add --gtfs-dir data/raw/gtfs_july2025 to overlay onto a dated base feed (see docs/FLEX_RECOMMENDATION_ENGINE.md)
 uv run python pipeline/serve_flex_scenarios.py      # serve generated scenarios to UI/SUMO layer
 ```
 
