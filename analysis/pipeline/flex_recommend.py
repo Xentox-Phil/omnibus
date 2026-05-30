@@ -974,6 +974,96 @@ def gtfs_time(ts: datetime, service_day: date) -> str:
     return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
+def _lcs_len(a: list[str], b: list[str]) -> int:
+    """Length of the longest common subsequence of two stop-name lists.
+
+    Used to pick the real base-GTFS trip that best matches a synthetic
+    flex-leg sequence *in travel order*, so we copy direction-correct
+    platforms rather than a name's first/representative platform.
+    """
+    n = len(b)
+    prev = [0] * (n + 1)
+    for ai in a:
+        cur = [0] * (n + 1)
+        for j in range(1, n + 1):
+            cur[j] = prev[j - 1] + 1 if ai == b[j - 1] else max(prev[j], cur[j - 1])
+        prev = cur
+    return prev[n]
+
+
+def build_base_route_trips(
+    routes_rows: list[dict[str, str]],
+    trips_rows: list[dict[str, str]],
+    stop_times_rows: list[dict[str, str]],
+    stops_rows: list[dict[str, str]],
+) -> dict[str, list[list[tuple[str, str]]]]:
+    """`route_short_name` -> list of real trips, each an ordered `(stop_name, stop_id)` list.
+
+    Lets flex service legs reuse the exact platform stop_ids the real route
+    drives, instead of resolving a stop *name* to one representative platform.
+    At multi-quay hubs (Hauptbahnhof has 10 platforms over ~116 m, Dachauplatz 5)
+    the representative platform is often on the wrong carriageway, which makes
+    gtfs2pt snap to a wrong-direction lane and duarouter U-turn — the out-and-back.
+    """
+    name_by_id = {s.get("stop_id", ""): s.get("stop_name", "") for s in stops_rows}
+    short_by_route = {r.get("route_id", ""): r.get("route_short_name", "") for r in routes_rows}
+    route_by_trip = {t.get("trip_id", ""): t.get("route_id", "") for t in trips_rows}
+
+    by_trip: dict[str, list[tuple[int, str]]] = {}
+    for st in stop_times_rows:
+        tid = st.get("trip_id", "")
+        try:
+            seq = int(st.get("stop_sequence") or 0)
+        except ValueError:
+            continue
+        by_trip.setdefault(tid, []).append((seq, st.get("stop_id", "")))
+
+    result: dict[str, list[list[tuple[str, str]]]] = {}
+    for tid, items in by_trip.items():
+        short = short_by_route.get(route_by_trip.get(tid, ""), "")
+        if not short:
+            continue
+        items.sort()
+        result.setdefault(short, []).append([(name_by_id.get(sid, ""), sid) for _, sid in items])
+    return result
+
+
+def real_platform_map(
+    base_route_trips: dict[str, list[list[tuple[str, str]]]],
+    route_short_name: str,
+    wanted_names: list[str],
+) -> dict[str, str]:
+    """Map each wanted stop_name to the platform stop_id the real route uses.
+
+    Picks the real trip on `route_short_name` whose stop-name order best matches
+    `wanted_names` (LCS), so the chosen platforms are direction-correct. Names
+    absent from that trip are omitted — the caller falls back to the
+    representative stop, so this can only improve (never regress) resolution.
+    """
+    trips = base_route_trips.get(route_short_name, [])
+    if not trips:
+        return {}
+    # Match on platform-stripped names: the flex sequence often carries a bare
+    # hub name ("Hauptbahnhof") while the real route visits a specific quay
+    # ("Hauptbahnhof (A5)"). Stripping lets the hub resolve to the route's actual
+    # directional platform — the whole point of the fix — and keeps the LCS
+    # direction-match robust to platform-suffix mismatches.
+    wanted_base = [strip_platform(n) for n in wanted_names]
+    best = max(trips, key=lambda ordered: _lcs_len(wanted_base, [strip_platform(n) for n, _ in ordered]))
+    exact: dict[str, str] = {}
+    stripped: dict[str, str] = {}
+    for name, sid in best:
+        exact.setdefault(name, sid)
+        stripped.setdefault(strip_platform(name), sid)
+    out: dict[str, str] = {}
+    for n in wanted_names:
+        if n in exact:
+            out[n] = exact[n]
+        elif strip_platform(n) in stripped:
+            out[n] = stripped[strip_platform(n)]
+    return out
+
+
 def generate_gtfs_zip(
     recommendations: list[dict[str, Any]],
     stop_lookup: dict[str, Stop],
@@ -1007,6 +1097,12 @@ def generate_gtfs_zip(
     stop_times_fields, stop_times_rows = read_csv_rows(RAW_GTFS / "stop_times.txt")
     calendar_fields, calendar_rows = read_csv_rows(RAW_GTFS / "calendar.txt")
     calendar_dates_fields, calendar_dates_rows = read_csv_rows(RAW_GTFS / "calendar_dates.txt")
+
+    # Real route trips, keyed by short name, so service legs reuse the exact
+    # platform stop_ids the route drives (direction-correct) instead of a name's
+    # representative platform — see real_platform_map / build_base_route_trips.
+    base_route_trips = build_base_route_trips(routes_rows, trips_rows, stop_times_rows, stops_rows)
+    short_by_route_id = {r.get("route_id", ""): r.get("route_short_name", "") for r in routes_rows}
 
     for field in ("agency_id", "agency_name", "agency_url", "agency_timezone"):
         ensure_field(agency_fields, field)
@@ -1087,6 +1183,8 @@ def generate_gtfs_zip(
                 parse_dt(donor_trip["arrive"]),
                 stop_lookup,
             )
+            donor_short = short_by_route_id.get(donor_trip["route_id"], donor_trip["route_id"])
+            donor_platforms = real_platform_map(base_route_trips, donor_short, donor_trip["stops"])
             for seq, (stop_name, ts) in enumerate(zip(donor_trip["stops"], donor_times), start=1):
                 append_row(
                     stop_times_fields,
@@ -1095,7 +1193,7 @@ def generate_gtfs_zip(
                         "trip_id": donor_trip["trip_id"],
                         "arrival_time": gtfs_time(ts, service_day),
                         "departure_time": gtfs_time(ts, service_day),
-                        "stop_id": stop_lookup[stop_name].stop_id,
+                        "stop_id": donor_platforms.get(stop_name) or stop_lookup[stop_name].stop_id,
                         "stop_sequence": seq,
                         "pickup_type": 0,
                         "drop_off_type": 0,
@@ -1154,6 +1252,8 @@ def generate_gtfs_zip(
         )
         flex_start = parse_dt(rec["new_flex_route"]["depart"])
         times = route_stop_times(rec["new_flex_route"]["stops"], flex_start, stop_lookup)
+        relief_short = short_by_route_id.get(route_id, route_id)
+        relief_platforms = real_platform_map(base_route_trips, relief_short, rec["new_flex_route"]["stops"])
         for seq, (stop_name, ts) in enumerate(zip(rec["new_flex_route"]["stops"], times), start=1):
             append_row(
                 stop_times_fields,
@@ -1162,7 +1262,7 @@ def generate_gtfs_zip(
                     "trip_id": flex_trip_id,
                     "arrival_time": gtfs_time(ts, service_day),
                     "departure_time": gtfs_time(ts, service_day),
-                    "stop_id": stop_lookup[stop_name].stop_id,
+                    "stop_id": relief_platforms.get(stop_name) or stop_lookup[stop_name].stop_id,
                     "stop_sequence": seq,
                     "pickup_type": 0,
                     "drop_off_type": 0,

@@ -25,6 +25,7 @@ segments for any UI that needs them.
 
 from __future__ import annotations
 
+import json
 import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
@@ -33,6 +34,20 @@ from pathlib import Path
 # Vehicle id prefix that identifies a flex-block leg, e.g.
 # "FLEX_10_02_REGULAR_10_BEFORE_PULL.0" → block "FLEX_10_02".
 FLEX_VEHICLE_RE = re.compile(r"^(FLEX_\d+_\d+)_")
+
+
+def _leg_role(vehicle_id: str) -> str:
+    """Segment role parsed from a per-leg flex vehicle id.
+
+    The flex engine encodes the leg in the id suffix:
+    REGULAR_..._BEFORE_PULL → donor service, OUT_OF_SERVICE → unboardable
+    repositioning, RELIEF_... → the flex relief service.
+    """
+    if "OUT_OF_SERVICE" in vehicle_id:
+        return "reposition"
+    if "RELIEF" in vehicle_id:
+        return "relief"
+    return "service"
 
 
 def _bridge(net, src: str, dst: str) -> list[str]:
@@ -110,6 +125,10 @@ def merge_flex_blocks(vehicles_path: Path, net_path: Path) -> int:
                 "edges": route.get("edges", "").split(),
                 "stops": list(route.findall("stop")),
                 "depart": int(v.get("depart")),
+                "role": _leg_role(v.get("id", "")),
+                # per-leg line ("10#4" → "10", "OUT", "5#…" → "5"); identity the
+                # merged vehicle would otherwise lose by flattening to "FLEX".
+                "line": v.get("line", "").split("#")[0],
             })
         if not legs:
             continue
@@ -143,12 +162,27 @@ def merge_flex_blocks(vehicles_path: Path, net_path: Path) -> int:
         })
         for stop in merged_stops:
             merged_vehicle.append(stop)
+        # Per-leg identity for the UI: each segment's role/line and the sim time
+        # (seconds since midnight) it begins. The trajectory exporter reads this
+        # back so the frontend can paint the unboardable reposition distinctly
+        # from the line-10 and relief service legs. See export_trajectories.py.
+        segments = [{"role": leg["role"], "line": leg["line"], "start": leg["depart"]} for leg in legs]
+        merged_vehicle.append(ET.Element("param", {"key": "flex.segments", "value": json.dumps(segments)}))
 
         for v in vehicles:
-            root.remove(routes[v.get("route")])
             root.remove(v)
         root.append(merged_route)
         root.append(merged_vehicle)
+
+    # Drop only routes nothing references any more. gtfs2pt deduplicates trips
+    # with identical edge sequences onto a single <route>, so a flex leg's route
+    # can be shared with a regular vehicle (especially now that the donor leg
+    # reuses the real line-10 platforms). Removing it blindly would dangle that
+    # vehicle's ref — SUMO aborts with "route ... is not known".
+    used = {v.get("route") for v in root.findall("vehicle")}
+    for route_el in root.findall("route"):
+        if route_el.get("id") not in used:
+            root.remove(route_el)
 
     ET.indent(tree, space="    ")
     tree.write(vehicles_path, encoding="utf-8", xml_declaration=True)

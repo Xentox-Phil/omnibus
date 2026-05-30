@@ -84,6 +84,14 @@ class DemandSurface(BaseModel):
 # sampled in geo coords. Drives the animated bus layer on the same sim clock.
 
 
+class FlexSegment(BaseModel):
+    """One leg of a flex block, for painting the bus per-leg on the map."""
+
+    role: str  # "service" (line-10 leg) | "reposition" (unboardable) | "relief"
+    line: str  # leg's GTFS line ("10", "OUT", "5")
+    start: int  # seconds since midnight this leg begins (matches points' t)
+
+
 class BusTrajectory(BaseModel):
     id: str  # gtfs2pt vehicle id (unique per trip)
     line: str  # GTFS line short name ("1", "3", "5", "10", "X4")
@@ -91,6 +99,9 @@ class BusTrajectory(BaseModel):
     # line-10 vehicle that pulls off, deadheads, then runs a route-5 relief leg.
     block: str | None = None
     flex: bool = False
+    # flex blocks only: per-leg identity (10 → OUT → 5) with the second each leg
+    # starts, so the UI can distinguish the unboardable reposition from service.
+    segments: list[FlexSegment] | None = None
     # each point is [t_seconds_since_midnight, lon, lat, angle_deg]
     points: list[list[float]]
 

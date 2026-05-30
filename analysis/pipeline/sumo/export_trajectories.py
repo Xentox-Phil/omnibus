@@ -29,6 +29,7 @@ import gzip
 import json
 import re
 import xml.etree.ElementTree as ET
+from typing import Any
 
 import _sumo_env as env
 
@@ -51,6 +52,25 @@ def vehicle_lines() -> dict[str, str]:
     return lines
 
 
+def vehicle_segments() -> dict[str, list[dict[str, Any]]]:
+    """id -> flex per-leg segments, from the `flex.segments` param _flex_merge writes.
+
+    Each entry is {role, line, start} with `start` in seconds since midnight —
+    directly comparable to the fcd timestamps — so the frontend can tell which
+    leg (line-10 service / unboardable reposition / route-5 relief) a flex bus is
+    running at any moment. Non-flex vehicles have no such param.
+    """
+    path = env.DATA_DIR / "pt_vehicles.add.xml"
+    segments: dict[str, list[dict[str, Any]]] = {}
+    for _, el in ET.iterparse(path, events=("end",)):
+        if el.tag == "vehicle":
+            for param in el.findall("param"):
+                if param.get("key") == "flex.segments":
+                    segments[el.get("id")] = json.loads(param.get("value", "[]"))
+            el.clear()
+    return segments
+
+
 def flex_block(vid: str) -> str | None:
     """Block id if this vehicle is a scripted flex bus, else None."""
     m = FLEX_BLOCK_RE.search(vid)
@@ -68,6 +88,7 @@ def main() -> None:
         return
 
     lines = vehicle_lines()
+    segments = vehicle_segments()
     fcd = env.DATA_DIR / "fcd.xml.gz"
     buses: dict[str, list] = {}
     t = 0
@@ -97,6 +118,9 @@ def main() -> None:
         if block:  # only flex buses carry block + flag, keeping the JSON lean
             obj["block"] = block
             obj["flex"] = True
+            segs = segments.get(vid)
+            if segs:  # per-leg identity so the UI can paint the reposition apart
+                obj["segments"] = segs
         return obj
 
     payload = {
