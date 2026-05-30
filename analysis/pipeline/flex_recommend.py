@@ -9,8 +9,9 @@ flex buses from low-pressure donor routes. Outputs:
   data/scenarios/<scenario_id>/fleet_snapshot.json
 
 The generated GTFS is a complete scenario feed: base RVV GTFS files copied from
-data/raw/gtfs plus appended donor/deadhead/flex trips. It does not overwrite the
-real RVV feed.
+data/raw/gtfs plus appended passenger-service trips on existing public routes.
+Repositioning is written to scenario_manifest.json, not as fake GTFS routes.
+It does not overwrite the real RVV feed.
 
 Usage from analysis/:
     uv run python pipeline/flex_recommend.py
@@ -888,10 +889,77 @@ def ensure_field(fieldnames: list[str], field: str) -> None:
 def flex_label_for_destination(stop_name: str) -> str:
     norm = normalise_name(stop_name)
     if "jahn" in norm:
-        return "FLEX-JAHN"
+        return "5"
     if "hauptbahnhof" in norm or norm == "hbf":
-        return "FLEX-HBF"
-    return "FLEX"
+        return "5"
+    return "5"
+
+
+def relief_route_id_for_mission(rec: dict[str, Any], route_ids: set[str]) -> str:
+    """Passenger-facing route for the relief trip.
+
+    For the Jahn demo, line 5 is the visible support route. If the base feed ever
+    lacks route 5, fall back to the donor route rather than inventing a new one.
+    """
+    return "5" if "5" in route_ids else rec["from_route_id"]
+
+
+def manifest_for_recommendations(
+    recommendations: list[dict[str, Any]],
+    service_day: date,
+    relief_trip_ids: dict[str, str],
+) -> dict[str, Any]:
+    vehicles: list[dict[str, Any]] = []
+    for rec in recommendations:
+        if rec["action"] != "reallocate_flex_bus":
+            continue
+        donor = rec.get("donor_regular_trip", {})
+        vehicles.append(
+            {
+                "vehicle_id": rec["bus_id"],
+                "block_id": rec["bus_id"],
+                "recommendation_id": rec["recommendation_id"],
+                "score": rec["score"],
+                "explanation": rec["explanation"],
+                "segments": [
+                    {
+                        "type": "service",
+                        "role": "regular_before_pull",
+                        "route_id": rec["from_route_id"],
+                        "trip_id": donor.get("trip_id"),
+                        "from_stop": donor.get("stops", [None])[0],
+                        "to_stop": donor.get("stops", [None])[-1],
+                        "depart": donor.get("depart"),
+                        "arrive": donor.get("arrive"),
+                    },
+                    {
+                        "type": "reposition",
+                        "role": "terminal_to_relief_origin",
+                        "from_stop": rec["deadhead"]["from_stop"],
+                        "to_stop": rec["deadhead"]["to_stop"],
+                        "depart": rec["deadhead"]["depart"],
+                        "arrive": rec["deadhead"]["arrive"],
+                        "duration_min": rec["deadhead"]["duration_min"],
+                    },
+                    {
+                        "type": "service",
+                        "role": "flex_relief",
+                        "route_id": rec["new_flex_route"]["route_id"],
+                        "trip_id": relief_trip_ids[rec["recommendation_id"]],
+                        "from_stop": rec["new_flex_route"]["stops"][0],
+                        "to_stop": rec["new_flex_route"]["stops"][-1],
+                        "desired_depart": rec["new_flex_route"]["desired_depart"],
+                        "depart": rec["new_flex_route"]["depart"],
+                        "arrive": rec["new_flex_route"]["arrive"],
+                    },
+                ],
+            }
+        )
+    return {
+        "service_date": service_day.isoformat(),
+        "description": "Flex-bus scenario sidecar. GTFS contains only passenger-service trips on existing public routes; repositioning is represented here.",
+        "vehicles": vehicles,
+    }
 
 
 def gtfs_time(ts: datetime, service_day: date) -> str:
@@ -906,7 +974,7 @@ def generate_gtfs_zip(
     recommendations: list[dict[str, Any]],
     stop_lookup: dict[str, Stop],
     out_zip: Path,
-) -> None:
+) -> dict[str, Any]:
     active = [r for r in recommendations if r["action"] == "reallocate_flex_bus"]
     if not active:
         raise SystemExit("no active reallocations to write to GTFS")
@@ -970,51 +1038,20 @@ def generate_gtfs_zip(
         )
         existing_stop_ids.add(stop.stop_id)
 
-    added_route_ids = {row.get("route_id", "") for row in routes_rows}
-
-    def add_route_once(route: dict[str, Any]) -> None:
-        route_id = str(route["route_id"])
-        if route_id in added_route_ids:
-            return
-        append_row(routes_fields, routes_rows, route)
-        added_route_ids.add(route_id)
+    base_route_ids = {row.get("route_id", "") for row in routes_rows}
+    relief_trip_ids: dict[str, str] = {}
 
     for rec in active:
-        route_id = rec["new_flex_route"]["route_id"]
-        flex_short_name = flex_label_for_destination(rec["new_flex_route"]["stops"][-1])
-        add_route_once(
-            {
-                "route_id": route_id,
-                "agency_id": SERVICE_AGENCY_ID,
-                "route_short_name": flex_short_name,
-                "route_long_name": f"{rec['new_flex_route']['stops'][0]} to {rec['new_flex_route']['stops'][-1]}",
-                "route_type": 3,
-                "route_desc": rec["explanation"],
-                "route_color": "00AEEF",
-                "route_text_color": "FFFFFF",
-            }
-        )
+        route_id = relief_route_id_for_mission(rec, base_route_ids)
+        rec["new_flex_route"]["route_id"] = route_id
 
         donor_trip = rec.get("donor_regular_trip")
         if donor_trip:
-            donor_route_id = f"{donor_trip['route_id']}_FLEX_DONOR"
-            add_route_once(
-                {
-                    "route_id": donor_route_id,
-                    "agency_id": SERVICE_AGENCY_ID,
-                    "route_short_name": f"{donor_trip['route_id']} FLEX",
-                    "route_long_name": f"Line {donor_trip['route_id']} flex donor before pull",
-                    "route_type": 3,
-                    "route_desc": f"{rec['bus_id']} running its regular donor route before flex reassignment.",
-                    "route_color": "75B95B",
-                    "route_text_color": "FFFFFF",
-                }
-            )
             append_row(
                 trips_fields,
                 trips_rows,
                 {
-                    "route_id": donor_route_id,
+                    "route_id": donor_trip["route_id"],
                     "service_id": "SCENARIO_SERVICE",
                     "trip_id": donor_trip["trip_id"],
                     "trip_headsign": donor_trip["stops"][-1],
@@ -1043,52 +1080,8 @@ def generate_gtfs_zip(
                     },
                 )
 
-        deadhead_stops = [rec["deadhead"]["from_stop"], rec["deadhead"]["to_stop"]]
-        if deadhead_stops[0] != deadhead_stops[1]:
-            deadhead_route_id = f"{flex_label_for_destination(deadhead_stops[-1]).replace('-', '_')}_TRANSITION"
-            add_route_once(
-                {
-                    "route_id": deadhead_route_id,
-                    "agency_id": SERVICE_AGENCY_ID,
-                    "route_short_name": flex_label_for_destination(deadhead_stops[-1]),
-                    "route_long_name": f"Transition to {deadhead_stops[-1]}",
-                    "route_type": 3,
-                    "route_desc": "Non-passenger repositioning for simulation visibility",
-                    "route_color": "999999",
-                    "route_text_color": "FFFFFF",
-                }
-            )
-            trip_id = f"{rec['bus_id']}_DEADHEAD_{slug(rec['recommendation_id'], 20)}"
-            append_row(
-                trips_fields,
-                trips_rows,
-                {
-                    "route_id": deadhead_route_id,
-                    "service_id": "SCENARIO_SERVICE",
-                    "trip_id": trip_id,
-                    "trip_headsign": f"Transition to {deadhead_stops[-1]}",
-                    "block_id": rec["bus_id"],
-                }
-            )
-            start = parse_dt(rec["deadhead"]["depart"])
-            for seq, (stop_name, ts) in enumerate(
-                zip(deadhead_stops, route_stop_times(deadhead_stops, start, stop_lookup)), start=1
-            ):
-                append_row(
-                    stop_times_fields,
-                    stop_times_rows,
-                    {
-                        "trip_id": trip_id,
-                        "arrival_time": gtfs_time(ts, service_day),
-                        "departure_time": gtfs_time(ts, service_day),
-                        "stop_id": stop_lookup[stop_name].stop_id,
-                        "stop_sequence": seq,
-                        "pickup_type": 1,
-                        "drop_off_type": 1,
-                    }
-                )
-
-        flex_trip_id = f"{rec['bus_id']}_{slug(route_id, 28)}"
+        flex_trip_id = f"{rec['bus_id']}_RELIEF_ROUTE_{slug(route_id, 12)}_{parse_dt(rec['new_flex_route']['depart']):%H%M}"
+        relief_trip_ids[rec["recommendation_id"]] = flex_trip_id
         append_row(
             trips_fields,
             trips_rows,
@@ -1097,6 +1090,7 @@ def generate_gtfs_zip(
                 "service_id": "SCENARIO_SERVICE",
                 "trip_id": flex_trip_id,
                 "trip_headsign": rec["new_flex_route"]["stops"][-1],
+                "trip_short_name": f"{rec['bus_id']} flex relief",
                 "block_id": rec["bus_id"],
             }
         )
@@ -1158,6 +1152,8 @@ def generate_gtfs_zip(
             if path.is_file() and path.name not in handled:
                 zf.write(path, arcname=path.name)
 
+    return manifest_for_recommendations(active, service_day, relief_trip_ids)
+
 
 def json_default(obj: Any) -> str:
     if isinstance(obj, datetime):
@@ -1204,7 +1200,11 @@ def run_engine(pressure_path: Path | None, scenario_id: str, force: bool) -> Pat
         json.dumps(MOCK_FLEET, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    generate_gtfs_zip(recommendations, stops, out_dir / "scenario_gtfs.zip")
+    scenario_manifest = generate_gtfs_zip(recommendations, stops, out_dir / "scenario_gtfs.zip")
+    (out_dir / "scenario_manifest.json").write_text(
+        json.dumps(scenario_manifest, indent=2, ensure_ascii=False, default=json_default),
+        encoding="utf-8",
+    )
     return out_dir
 
 
