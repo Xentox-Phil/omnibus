@@ -1267,11 +1267,20 @@ def run_engine(pressure_path: Path | None, scenario_id: str, force: bool) -> Pat
 
 
 def main() -> None:
+    global RAW_GTFS
     ap = argparse.ArgumentParser(description="Generate flex-bus recommendations and scenario GTFS.")
     ap.add_argument("--pressure-json", type=Path, help="Directional pressure JSON from the pressure model.")
     ap.add_argument("--scenario-id", default="jahn_match_demo", help="Output scenario id under data/scenarios/.")
     ap.add_argument("--force", action="store_true", help="Overwrite existing scenario outputs.")
+    ap.add_argument(
+        "--gtfs-dir",
+        type=Path,
+        default=RAW_GTFS,
+        help="Base GTFS feed directory to overlay the scenario onto (default: data/raw/gtfs).",
+    )
     args = ap.parse_args()
+
+    RAW_GTFS = args.gtfs_dir
 
     out_dir = run_engine(args.pressure_json, args.scenario_id, args.force)
     print(f"[ok] wrote {out_dir / 'recommendations.json'}")

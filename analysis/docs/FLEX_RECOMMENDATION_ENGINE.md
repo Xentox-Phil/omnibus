@@ -12,6 +12,25 @@ Run from `analysis/`:
 uv run python pipeline/flex_recommend.py --scenario-id jahn_match_demo --force
 ```
 
+### Flags
+
+| Flag | Default | Purpose |
+| ---- | ------- | ------- |
+| `--pressure-json PATH` | built-in demo | Directional pressure JSON from the model (dense or stop-pair format). |
+| `--scenario-id ID` | `jahn_match_demo` | Output folder under `data/scenarios/`. |
+| `--gtfs-dir PATH` | `data/raw/gtfs` | Base GTFS feed to overlay the scenario onto. Point at a dated feed (e.g. `data/raw/gtfs_july2025`) to match the demand day. The dir must contain `agency/stops/routes/trips/stop_times/calendar/calendar_dates.txt`. |
+| `--force` | off | Overwrite an existing scenario folder. |
+
+Example — overlay the 2025-07-28 demand surface onto the July feed:
+
+```bash
+uv run python pipeline/flex_recommend.py \
+  --pressure-json data/demand/demand_2025-07-28.json \
+  --scenario-id july_demand_2025-07-28 \
+  --gtfs-dir data/raw/gtfs_july2025 \
+  --force
+```
+
 Outputs:
 
 ```text
