@@ -1,141 +1,113 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Bell, Check, Rocket } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import Map, { Marker  } from 'react-map-gl/mapbox'
+import type {MapRef} from 'react-map-gl/mapbox';
+import { MapPin } from 'lucide-react'
+import 'mapbox-gl/dist/mapbox-gl.css'
 
-import { Button } from '#/components/ui/button'
+import { env } from '#/env'
+import { SimClockProvider, useSimClock } from '#/hooks/useSimClock'
+import { useDemandSurface, useEventCurves } from '#/hooks/useDemand'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card'
-import { Badge } from '#/components/ui/badge'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Textarea } from '#/components/ui/textarea'
-import { Switch } from '#/components/ui/switch'
-import { Slider } from '#/components/ui/slider'
-import { Separator } from '#/components/ui/separator'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '#/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
+  lightPresetForHour,
+  stopName
+  
+} from '#/lib/demand'
+import type {LightPreset} from '#/lib/demand';
+import { DemandHeatmap } from '#/components/map/DemandHeatmap'
+import { SimControls } from '#/components/SimControls'
+import { EventsPanel } from '#/components/events/EventsPanel'
+import { SimToast } from '#/components/events/SimToast'
 
 export const Route = createFileRoute('/')({ component: Home })
 
+const REGENSBURG = { longitude: 12.0966, latitude: 49.0186, zoom: 13.2 }
+
 function Home() {
-  const [notify, setNotify] = useState(true)
-  const [volume, setVolume] = useState([50])
+  return (
+    <SimClockProvider>
+      <DemandView />
+    </SimClockProvider>
+  )
+}
+
+function DemandView() {
+  const mapRef = useRef<MapRef>(null)
+  const [showHeatmap, setShowHeatmap] = useState(true)
+  const [mapReady, setMapReady] = useState(false)
+  const lastPreset = useRef<LightPreset | null>(null)
+  const { minute } = useSimClock()
+
+  const surfaceQuery = useDemandSurface()
+  const eventsQuery = useEventCurves()
+  const surface = surfaceQuery.data
+  const events = eventsQuery.data
+
+  // Drive the basemap light preset from the simulated hour (guarded so we only
+  // touch the map when the preset actually changes).
+  const hour = Math.floor(minute / 60)
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const next = lightPresetForHour(hour)
+    if (next === lastPreset.current) return
+    map.setConfigProperty('basemap', 'lightPreset', next)
+    lastPreset.current = next
+  }, [hour, mapReady])
+
+  // Venue / affected stops to pin on the map for orientation.
+  const eventStops = events
+    ? Array.from(
+        new Set(events.events.flatMap((e) => e.legs.map((l) => l.from))),
+      )
+    : []
+  const stopCoord = (code: string) => {
+    const n = surface?.nodes.find((x) => x.stop_code === code)
+    return n ? { lon: n.lon, lat: n.lat } : null
+  }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 p-8">
-      <header className="space-y-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-4xl font-bold tracking-tight">Component Showcase</h1>
-          <Badge>shadcn/ui</Badge>
-        </div>
-        <p className="text-muted-foreground text-lg">
-          A few shadcn components dropped onto the main page.
-        </p>
-      </header>
+    <div className="relative h-screen w-screen overflow-hidden">
+      <Map
+        ref={mapRef}
+        mapboxAccessToken={env.VITE_MAPBOX_TOKEN}
+        initialViewState={{ ...REGENSBURG, pitch: 35, bearing: -17 }}
+        mapStyle="mapbox://styles/mapbox/standard"
+        style={{ width: '100%', height: '100%' }}
+        onLoad={() => setMapReady(true)}
+      >
+        {surface && showHeatmap ? (
+          <DemandHeatmap surface={surface} minute={minute} />
+        ) : null}
 
-      <Separator />
+        {eventStops.map((code) => {
+          const c = stopCoord(code)
+          if (!c) return null
+          return (
+            <Marker
+              key={code}
+              longitude={c.lon}
+              latitude={c.lat}
+              anchor="bottom"
+            >
+              <div className="flex flex-col items-center">
+                <span className="rounded-full bg-card/90 px-2 py-0.5 text-[10px] font-medium shadow ring-1 ring-foreground/10 backdrop-blur">
+                  {stopName(code)}
+                </span>
+                <MapPin className="size-5 text-primary drop-shadow" />
+              </div>
+            </Marker>
+          )
+        })}
+      </Map>
 
-      <div className="flex flex-wrap gap-3">
-        <Button>
-          <Rocket /> Primary
-        </Button>
-        <Button variant="secondary">Secondary</Button>
-        <Button variant="outline">Outline</Button>
-        <Button variant="ghost">Ghost</Button>
-        <Button variant="destructive">Destructive</Button>
-      </div>
-
-      <Tabs defaultValue="form">
-        <TabsList>
-          <TabsTrigger value="form">Form</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="form">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create something</CardTitle>
-              <CardDescription>
-                Inputs, selects, and a textarea inside a card.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Jane Doe" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Pick a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea id="bio" placeholder="Tell us a bit about yourself…" />
-              </div>
-            </CardContent>
-            <CardFooter className="gap-2">
-              <Button>
-                <Check /> Save
-              </Button>
-              <Button variant="ghost">Cancel</Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>Toggles and a slider.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="size-4" />
-                  <Label htmlFor="notify">Notifications</Label>
-                </div>
-                <Switch id="notify" checked={notify} onCheckedChange={setNotify} />
-              </div>
-              <Separator />
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Volume</Label>
-                  <Badge variant="secondary">{volume[0]}%</Badge>
-                </div>
-                <Slider
-                  value={volume}
-                  onValueChange={(value) =>
-                    setVolume(Array.isArray(value) ? [...value] : [value])
-                  }
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <SimControls
+        showHeatmap={showHeatmap}
+        onToggleHeatmap={setShowHeatmap}
+      />
+      {events ? <EventsPanel data={events} /> : null}
+      {events ? <SimToast data={events} /> : null}
     </div>
   )
 }

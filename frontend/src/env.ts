@@ -14,6 +14,8 @@ export const env = createEnv({
 
   client: {
     VITE_APP_TITLE: z.string().min(1).optional(),
+    VITE_MAPBOX_TOKEN: z.string().min(1),
+    VITE_API_URL: z.string().url().default('http://localhost:8000'),
   },
 
   /**

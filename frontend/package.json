@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "vite dev --port 3000",
+    "gen:api": "openapi-ts",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -45,9 +46,11 @@
     "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
     "lucide-react": "^0.577.0",
+    "mapbox-gl": "^3.24.0",
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-map-gl": "^8.1.1",
     "shadcn": "^4.8.2",
     "superjson": "^2.2.2",
     "tailwind-merge": "^3.0.2",
@@ -56,6 +59,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.97.3",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
