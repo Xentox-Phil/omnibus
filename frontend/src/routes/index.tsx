@@ -99,7 +99,7 @@ function DemandView() {
           <DemandHeatmap surface={surface} minute={minute} />
         ) : null}
 
-        {traj && showBuses ? <BusLayer traj={traj} minute={minute} /> : null}
+        {traj && showBuses ? <BusLayer traj={traj} minute={minute} night={night} /> : null}
 
         {eventStops.map((code) => {
           const c = stopCoord(code)

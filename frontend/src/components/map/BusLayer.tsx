@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
-import {
-  Layer,
-  Popup,
-  Source,
-  useMap,
-  type MapMouseEvent,
-} from 'react-map-gl/mapbox'
+import type { MapMouseEvent } from 'react-map-gl/mapbox'
+import { Layer, Marker, Popup, Source, useMap } from 'react-map-gl/mapbox'
 
 import type { Trajectories } from '#/api'
 import { busColor, busPositionsAt, FLEX_COLOR } from '#/lib/buses'
@@ -44,9 +39,11 @@ type Hovered = {
 export function BusLayer({
   traj,
   minute,
+  night,
 }: {
   traj: Trajectories
   minute: number
+  night: boolean
 }) {
   const { current: map } = useMap()
   const [hovered, setHovered] = useState<Hovered | null>(null)
@@ -86,9 +83,10 @@ export function BusLayer({
   // playing); 118 binary-searched lookups per frame is negligible. Interpolated
   // positions keep motion smooth between the 3s FCD samples.
   const second = minute * 60
+  const positions = busPositionsAt(traj, second)
   const fc: FeatureCollection = {
     type: 'FeatureCollection',
-    features: busPositionsAt(traj, second).map((b) => ({
+    features: positions.map((b) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [b.lon, b.lat] },
       properties: {
@@ -118,12 +116,23 @@ export function BusLayer({
           id="bus-flex-glow"
           type="circle"
           slot="top"
-          filter={['all', ['==', ['get', 'flex'], true], ['!', ['get', 'outOfService']]]}
+          filter={[
+            'all',
+            ['==', ['get', 'flex'], true],
+            ['!', ['get', 'outOfService']],
+          ]}
           paint={{
             'circle-color': FLEX_COLOR,
             'circle-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              10, 15, 13, 21, 16, 32,
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              15,
+              13,
+              21,
+              16,
+              32,
             ],
             'circle-blur': 0.7,
             'circle-opacity': 0.55,
@@ -140,8 +149,15 @@ export function BusLayer({
           paint={{
             'circle-color': 'rgba(15,23,42,0.55)',
             'circle-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              10, 9, 13, 13, 16, 20,
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              9,
+              13,
+              13,
+              16,
+              20,
             ],
             'circle-blur': 0.4,
             'circle-emissive-strength': 1,
@@ -156,10 +172,22 @@ export function BusLayer({
           paint={{
             'circle-color': ['get', 'color'],
             'circle-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              10, 7, 13, 11, 16, 17,
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              7,
+              13,
+              11,
+              16,
+              17,
             ],
-            'circle-stroke-color': ['case', ['get', 'flex'], '#fde68a', '#ffffff'],
+            'circle-stroke-color': [
+              'case',
+              ['get', 'flex'],
+              '#fde68a',
+              '#ffffff',
+            ],
             'circle-stroke-width': ['case', ['get', 'flex'], 3, 2],
             'circle-opacity': 1,
             // keep the dot at full brightness under the night light preset
@@ -176,8 +204,15 @@ export function BusLayer({
             'text-field': ['get', 'label'],
             'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
             'text-size': [
-              'interpolate', ['linear'], ['zoom'],
-              10, 9, 13, 12, 16, 16,
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              10,
+              9,
+              13,
+              12,
+              16,
+              16,
             ],
             'text-allow-overlap': true,
             'text-ignore-placement': true,
@@ -190,6 +225,32 @@ export function BusLayer({
           }}
         />
       </Source>
+
+      {/* "OMNI" pill above each flex bus — rendered as DOM Markers so the
+          styling matches the event-stop pills (routes/index.tsx) verbatim.
+          Positions come from the same `positions` array as the GeoJSON dots,
+          so they update on the same React commit during simulation playback. */}
+      {positions
+        .filter((b) => b.flex)
+        .map((b) => (
+          <Marker
+            key={`omni-${b.id}`}
+            longitude={b.lon}
+            latitude={b.lat}
+            anchor="bottom"
+            offset={[0, -22]}
+          >
+            <span
+              className={
+                night
+                  ? 'rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-slate-900 shadow-lg'
+                  : 'rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-bold tracking-wide text-slate-900 shadow-md backdrop-blur'
+              }
+            >
+              OMNI
+            </span>
+          </Marker>
+        ))}
 
       {hovered ? (
         <Popup
@@ -204,13 +265,19 @@ export function BusLayer({
             <div className="flex flex-col gap-0.5">
               <span
                 className="text-[10px] font-bold uppercase tracking-wide"
-                style={{ color: hovered.outOfService ? OUT_OF_SERVICE_COLOR : FLEX_COLOR }}
+                style={{
+                  color: hovered.outOfService
+                    ? OUT_OF_SERVICE_COLOR
+                    : FLEX_COLOR,
+                }}
               >
                 {hovered.outOfService ? '○ Repositioning' : '⚡ Flexbus'}
               </span>
               <span className="text-xs font-medium">{hovered.block}</span>
               {hovered.outOfService ? (
-                <span className="text-[10px] text-slate-500">out of service · no boarding</span>
+                <span className="text-[10px] text-slate-500">
+                  out of service · no boarding
+                </span>
               ) : null}
             </div>
           ) : (

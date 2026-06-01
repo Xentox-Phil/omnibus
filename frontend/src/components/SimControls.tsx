@@ -27,7 +27,7 @@ import { SPEEDS, useSimClock } from '#/hooks/useSimClock'
 import { lightPresetForHour, minToHHMM } from '#/lib/demand'
 import { cn } from '#/lib/utils'
 
-const SKIP_MIN = 15
+const SKIP_MIN = 5
 
 const PRESET_LABEL: Record<string, string> = {
   dawn: 'Dawn',
